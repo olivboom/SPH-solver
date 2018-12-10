@@ -1,6 +1,6 @@
 language: python
 python:
-  - "3.6.5"
+  - "3.6"
 
 # command to run tests
 script: pytest -modules pytest_SPH.py
