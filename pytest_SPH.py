@@ -7,10 +7,10 @@ def check_grid():
     domain.initialise_grid()
     domain.place_points(domain.min_x, domain.max_x)
     domain.allocate_to_grid()
-    
+
     x_value = []
     y_value = []
-    
+
     for value in domain.particle_list:
        x_value.append(value.x[0])
        y_value.append(value.x[1])
@@ -18,7 +18,7 @@ def check_grid():
 
     assert len(x_value) != 0
     assert len(y_value) != 0
-    
+
 def check_speed():
     domain = SPH_main()
     domain.set_values()
@@ -37,4 +37,3 @@ def check_density():
 
     for value in domain.particle_list:
         assert value.rho == 0
-    
