@@ -1,7 +1,6 @@
 """SPH class to find nearest neighbours..."""
 
 from itertools import count
-import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -63,7 +62,7 @@ class SPH_main(object):
                 elif x[1] > 1:
                     self.particle_list.append(particle)
                 x[1] += self.dx
-                print(x[1])
+                # print(x[1])
             x[0] += self.dx
 
     def allocate_to_grid(self):
@@ -101,7 +100,7 @@ class SPH_particle(object):
         self.v = np.zeros(2)
         self.a = np.zeros(2)
         self.D = 0
-        self.rho = 0.0
+        self.rho = 1.225 #0.0
         self.P = 0.0
         self.m = 0.0
 
@@ -156,6 +155,7 @@ def w(r, h):
 def dv_dt(P1, P2, rho_1, rho_2, rij, vij, h, m2, mu):
     """
     Calculates the change in velocity for a time step
+    for a
     :return:
     """
     mag_r = np.sqrt(sum(rij ** 2))
@@ -163,6 +163,7 @@ def dv_dt(P1, P2, rho_1, rho_2, rij, vij, h, m2, mu):
     dv = - m2 * (P1 / rho_1 ** 2 + P2 / rho_2 ** 2) * dw_dr(rij, h) * eij + (
                 mu * m2 + (rho_1 ** -2 + rho_2 ** -2) * dw_dr(rij, h) * vij / mag_r)
     return dv
+
 
 def drho_dt(rij, vij, h, m2):
     """
@@ -175,51 +176,79 @@ def drho_dt(rij, vij, h, m2):
     return drho
 
 
+def pressure(rho, rho0, c0, gamma):
+    """Calculates the pressure for a given density"""
+    B = (rho0 * c0 ** 2 / gamma) * rho0
+    pres = B * ((rho / rho0) ** gamma - 1)
+    return pres
 
-def ode_equation():
+
+def forward_euler(state, P1, P2, rho_1, rho_2, mu, c0, dt):
     """
-    The list of equations which describes the system
+    Because the equations are not coupled you can just time
+    step through
     :return:
     """
-    f = np.zeros_like()
-    f[0] = #dv_dt(P1, P2, rho_1, rho_2, rij, vij, h, m2, mu)
-    f[1] = #dv_dt(P1, P2, rho_1, rho_2, rij, vij, h, m2, mu)
-    f[2] = #drho_dt(rij, vij, h, m2)
-    f[3]
-    return f
+    # Want to check that the right indices are taken in the right places
+    vij = np.array((state[0], state[1]))
+    dv = dv_dt(P1, P2, rho_1, rho_2, rij, vij, h, m2, mu)
 
+    state[0] = state[0] + dt * dv[0]
+    state[1] = state[1] + dt * dv[1]
+    state[2] = state[2] + dt * drho_dt(rij, vij, h, m2)
+    state[3] = pressure(rho, rho0, c0, gamma)
+    return state
+
+
+# """Create a single object of the main SPH type"""
+domain = SPH_main()
+
+"""Calls the function that sets the simulation parameters"""
+domain.set_values()
+"""Initialises the search grid"""
+domain.initialise_grid()
+
+"""Places particles in a grid over the entire domain - In your code you will need to place the fluid particles in only the appropriate locations"""
+domain.place_points(domain.min_x, domain.max_x)
+
+"""This is only for demonstration only - In your code these functions will need to be inside the simulation loop"""
+"""This function needs to be called at each time step (or twice a time step if a second order time-stepping scheme is used)"""
+domain.allocate_to_grid()
+"""This example is only finding the neighbours for a single partle - this will need to be inside the simulation loop and will need to be called for every particle"""
+# domain.neighbour_iterate(domain.particle_list[100])
 
 rij = np.array([1, 1])
 vij = np.array([2, 3])
 mag_r = np.sqrt(sum(rij ** 2))
 m2 = 5
+gamma = 1
+rho = 1.2
+rho0 = 1.225
 e_ij = rij / mag_r
 h = 1.3 * 5
-print(dv_dt(1, 2, 1.225, 1.225, rij, vij, h, 0.01, 0.001))
-print(drho_dt(rij, vij, h, m2))
+dt = 1
+mu = 0.001
+c0 = 20
+
+i = 0
+j = 1
+P1 = domain.particle_list[i].P
+P2 = domain.particle_list[j].P
+rho_1 = domain.particle_list[i].rho
+rho_2 = domain.particle_list[j].rho
+
+state = [domain.particle_list[i].v[0], domain.particle_list[i].v[1], domain.particle_list[i].rho, domain.particle_list[i].P]
+print(state)
+state = forward_euler(state, P1, P2, rho_1, rho_2, mu, c0, dt)
+print(state)
 
 
+for i in range(len(domain.particle_list)):
+    print(i)
+    for j in range(1, len(domain.particle_list)):
+        print(j)
+        state = forward_euler(state, P1, P2, rho_1, rho_2, mu, c0, dt)
 
-# """Create a single object of the main SPH type"""
-# domain = SPH_main()
-#
-# """Calls the function that sets the simulation parameters"""
-# domain.set_values()
-# """Initialises the search grid"""
-# domain.initialise_grid()
-#
-# """Places particles in a grid over the entire domain - In your code you will need to place the fluid particles in only the appropriate locations"""
-# domain.place_points(domain.min_x, domain.max_x)
-#
-# """This is only for demonstration only - In your code these functions will need to be inside the simulation loop"""
-# """This function needs to be called at each time step (or twice a time step if a second order time-stepping scheme is used)"""
-# domain.allocate_to_grid()
-# """This example is only finding the neighbours for a single partle - this will need to be inside the simulation loop and will need to be called for every particle"""
-
-# domain.neighbour_iterate(domain.particle_list[100])
-# for i in range(domain.particle_list):
-#     for j in range(1, domain.particle_list):
-#         dv = dv_dt()
 
 
 # fig, ax1 = plt.subplots(1, 1, figsize=(10, 5))
