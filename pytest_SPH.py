@@ -27,7 +27,7 @@ def check_speed():
 
     for value in domain.particle_list:
         assert value.v[0] == 0
-        assert value.v[1] == 1
+        assert value.v[1] == 0
 
 def check_density():
     domain = SPH_main()
