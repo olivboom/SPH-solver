@@ -3,4 +3,4 @@ python:
   - "3.6"
 
 # command to run tests
-script: pytest -modules pytest_SPH.py
+script: pytest pytest_SPH.py
