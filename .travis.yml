@@ -7,4 +7,4 @@ install:
     - pip install pytest
     
 # command to run tests
-script: pytest -m pytest_SPH.py
+script: pytest pytest_SPH.py
