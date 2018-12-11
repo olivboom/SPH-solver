@@ -3,7 +3,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import animation
-import matplotlib
 from sph_stub import SPH_main
 from sph_stub import SPH_particle
 
@@ -97,17 +96,16 @@ def read_file_plot(filename, option = None, time=-1):
     
     fig = plt.figure(figsize=(8,8))
     ax1 = plt.subplot(111)
-    scat = ax1.scatter(xhist[0], yhist[0], c=vyhist[0])
+    #scat = ax1.scatter(xhist[0], yhist[0], c=vyhist[0])
+    
     def data_gen(i, xhist, yhist, vyhist, scat):
         # make sure initial condition is in plot
         scat = ax1.scatter(xhist[i], yhist[i], c=vyhist[i])
-        return scat
+        return scat,
     
-    anim = animation.FuncAnimation(fig, data_gen, frames=np.arange(0, solutions.shape[0]), fargs=(xhist, yhist, vyhist, scat),
-                               interval=1, blit=True)
+    anim = animation.FuncAnimation(fig, data_gen, frames=np.arange(0, solutions.shape[0]),
+                                   fargs=(xhist, yhist, vyhist, scat), interval=100, blit=True)
     
-    
-solutions = read_file_plot('State.npy', 2, -1)
+    return anim
 
-#for sol in solutions:
-#    read_file_plot(sol, option=2)
+solutions = read_file_plot('State.npy', 2, -1)
