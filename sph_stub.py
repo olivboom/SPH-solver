@@ -127,11 +127,14 @@ class SPH_main(object):
         while t < self.t_max:
             # plot the domain
             print(t)
-            for i in range(len(domain.particle_list)):
-                domain.neighbour_iterate(domain.particle_list[i])
-                particle = SPH_particle(self)
-                particle.update_values(self.dt)
-            print(domain.particle_list[10].v)
+            for particle in self.particle_list:
+                # Go through every particle and see the local changes
+                self.neighbour_iterate(particle)
+                # Want to update for each particle
+                # Should I call this in this method or in the neighbours method
+                # As each values effect the next one want to conduct simulatinuously
+            for particle in self.particle_list:
+                particle.update_values(self, self.dt)
             t+= self.dt
 
 
@@ -163,9 +166,8 @@ class SPH_particle(object):
                                  (2.0 * self.main_data.h), int)
 
 
-    def update_values(self, dt):
+    def update_values(self, domain, dt):
         """Updates the state of the particle for one time step forwards"""
-        print(self.a)
         self.v = self.v + (self.a * dt)
         self.rho = self.rho + (self.D * dt)
         # Calling the SPH_main object. How to get the abstraction to have SPH_main() called instead of domain
@@ -224,8 +226,6 @@ domain.place_points(domain.min_x, domain.max_x)
 """This function needs to be called at each time step (or twice a time step if a second order time-stepping scheme is used)"""
 domain.allocate_to_grid()
 """This example is only finding the neighbours for a single partle - this will need to be inside the simulation loop and will need to be called for every particle"""
-domain.neighbour_iterate(domain.particle_list[100])
-
 domain.time_step()
 
 
