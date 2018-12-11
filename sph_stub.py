@@ -2,7 +2,8 @@
 
 from itertools import count
 import numpy as np
-import tables
+from copy import deepcopy as copy
+
 
 import time
 
@@ -42,8 +43,9 @@ class SPH_main(object):
         self.gamma = 7
         self.dt = 0.1 * self.h / self.c0
 
+
         # Keeping it as two time steps for now
-        self.t_max = 2 * self.dt
+        self.t_max = 3 * self.dt
 
 
     def initialise_grid(self):
@@ -122,11 +124,14 @@ class SPH_main(object):
                             # print('Density change', part.D)
 
 
+
+
     def forward_wrapper(self):
         """Stepping through using forwards Euler"""
         t = 0
 
         while t < self.t_max:
+            self.log.append(copy(self.particle_list))
             # plot the domain
             print(t)
             for particle in self.particle_list:
@@ -135,9 +140,16 @@ class SPH_main(object):
             for particle in self.particle_list:
                 particle.update_values(self, self.dt)
 
-            self.log.append(self.particle_list)
+            print(self.particle_list[2].v)
 
-            t+= self.dt
+            t += self.dt
+        self.log.append(copy(self.particle_list))
+
+        print('----')
+        for i in self.log:
+            print(i[2].v)
+        print('----')
+
 
         self.state_save()
 
@@ -227,6 +239,8 @@ domain.place_points(domain.min_x, domain.max_x)
 """This is only for demonstration only - In your code these functions will need to be inside the simulation loop"""
 """This function needs to be called at each time step (or twice a time step if a second order time-stepping scheme is used)"""
 domain.allocate_to_grid()
+
+
 """This example is only finding the neighbours for a single partle - this will need to be inside the simulation loop and will need to be called for every particle"""
 domain.forward_wrapper()
 
