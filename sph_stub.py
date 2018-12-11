@@ -130,11 +130,8 @@ class SPH_main(object):
             # plot the domain
             print(t)
             for particle in self.particle_list:
-                # Go through every particle and see the local changes
                 self.neighbour_iterate(particle)
-                # Want to update for each particle
-                # Should I call this in this method or in the neighbours method
-                # As each values effect the next one want to conduct simulatinuously
+
             for particle in self.particle_list:
                 particle.update_values(self, self.dt)
 
@@ -143,18 +140,11 @@ class SPH_main(object):
             t+= self.dt
 
         self.state_save()
-        
+
 
     def state_save(self):
         np.save('State', self.log)
 
-
-
-'''
-The issue is that I want a method in SPH particle to conduct all of the 
-calculations for the update. But then I want the time stepping to take place
-in the main function 
-'''
 
 class SPH_particle(object):
     """Object containing all the properties for a single particle"""
@@ -241,17 +231,7 @@ domain.allocate_to_grid()
 domain.forward_wrapper()
 
 
-# print(domain.particle_list.P)
-# for i in range(len(domain.particle_list)):
-#     domain.neighbour_iterate(domain.particle_list[i])
-
 # fig, ax1 = plt.subplots(1, 1, figsize=(10, 5))
-
-# for i in range(0, len(domain.particle_list)):
-#     ax1.plot(domain.particle_list[i].x[0], domain.particle_list[i].x[1], 'bo')
-#
-# plt.show()
-
 
 # x_value = []
 # y_value = []
