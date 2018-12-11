@@ -2,6 +2,9 @@
 
 from itertools import count
 import numpy as np
+import time
+
+t0 = time.time()
 
 
 class SPH_main(object):
@@ -11,14 +14,14 @@ class SPH_main(object):
         self.h = 0.0
         self.h_fac = 0.0
         self.dx = 0.0
-        self.mu = 0.001
 
         self.min_x = np.zeros(2)
         self.max_x = np.zeros(2)
         self.max_list = np.zeros(2, int)
 
-        self.particle_list = []
+        self.particle_list = [] #np.array([])
         self.search_grid = np.empty((0, 0), object)
+
 
     def set_values(self):
         """Set simulation parameters."""
@@ -28,6 +31,18 @@ class SPH_main(object):
         self.dx = 0.02
         self.h_fac = 2
         self.h = self.dx * self.h_fac
+
+        # Added quantities
+        self.mu = 0.001
+        self.rho0 = 1.225
+        self.g = np.array((0, -9.81))
+        self.c0 = 20
+        self.gamma = 7
+        self.dt = 0.1 * self.h / self.c0
+
+        # Keeping it as two time steps for now
+        self.t_max = 4 * self.dt
+
 
     def initialise_grid(self):
         """Initalise simulation grid."""
@@ -41,6 +56,7 @@ class SPH_main(object):
                                  int)
 
         self.search_grid = np.empty(self.max_list, object)
+
 
     def place_points(self, xmin, xmax):
         """Place points in a rectangle with a square spacing of size dx"""
@@ -63,8 +79,8 @@ class SPH_main(object):
                 elif x[1] > 1:
                     self.particle_list.append(particle)
                 x[1] += self.dx
-                # print(x[1])
             x[0] += self.dx
+
 
     def allocate_to_grid(self):
         """Allocate all the points to a grid in order to aid neighbour searching"""
@@ -77,7 +93,10 @@ class SPH_main(object):
 
 
     def neighbour_iterate(self, part):
-        """Find all the particles within 2h of the specified particle"""
+        """Find all the particles within 2h of the specified particle
+        and calculates the acceleration vector, density change and
+        pressure at the new density
+        """
         for i in range(max(0, part.list_num[0] - 1),
                        min(part.list_num[0] + 2, self.max_list[0])):
             for j in range(max(0, part.list_num[1] - 1),
@@ -87,16 +106,40 @@ class SPH_main(object):
                         dn = part.x - other_part.x
                         dist = np.sqrt(np.sum(dn ** 2))
                         if dist < 2.0 * self.h:
-
+                            # vij = part.v - other_part.v
+                            # Gives acceleration at t[0] to then calculate v[1]
+                            part.a = self.g
                             part.a += (- other_part.m * (part.P / part.rho ** 2 + other_part.P/ other_part.rho ** 2) *
-                            dw_dr(dist / self.h, self.h) * dn / dist + (
-                                             self.mu * other_part.m * (part.rho ** -2 + other_part.rho ** -2) *
-                                             dw_dr(dist / self.h, self.h) * part.v / dist))
+                            dw_dr(dist / self.h, self.h) * dn / dist +
+                                        (self.mu * other_part.m * (part.rho ** -2 + other_part.rho ** -2) *
+                                             dw_dr(dist / self.h, self.h) * (part.v - other_part.v) / dist))
 
-                            print('Acceleration', part.a)
+                            part.D += other_part.m * dw_dr(dist / self.h, self.h) * np.dot(part.v - other_part.v, dn / dist)
+                            # print("id:", other_part.id)
+                            # print('Acceleration', part.a)
+                            # print('Density change', part.D)
 
-                            print("id:", other_part.id, "dn:", dn)
 
+    def time_step(self):
+        """Stepping through using forwards Euler"""
+        t = 0
+
+        while t < self.t_max:
+            # plot the domain
+            print(t)
+            for i in range(len(domain.particle_list)):
+                domain.neighbour_iterate(domain.particle_list[i])
+                particle = SPH_particle(self)
+                particle.update_values(self.dt)
+            print(domain.particle_list[10].v)
+            t+= self.dt
+
+
+'''
+The issue is that I want a method in SPH particle to conduct all of the 
+calculations for the update. But then I want the time stepping to take place
+in the main function 
+'''
 
 class SPH_particle(object):
     """Object containing all the properties for a single particle"""
@@ -109,14 +152,25 @@ class SPH_particle(object):
         self.v = np.zeros(2)
         self.a = np.zeros(2)
         self.D = 0
-        self.rho = 1.225 #0.0
+        self.rho = 1.225 #0
         self.P = 0.0
-        self.m = 0.0
+        self.m = 1.0 #0
+
 
     def calc_index(self):
         """Calculates the 2D integer index for the particle's location in the search grid"""
         self.list_num = np.array((self.x - self.main_data.min_x) /
                                  (2.0 * self.main_data.h), int)
+
+
+    def update_values(self, dt):
+        """Updates the state of the particle for one time step forwards"""
+        print(self.a)
+        self.v = self.v + (self.a * dt)
+        self.rho = self.rho + (self.D * dt)
+        # Calling the SPH_main object. How to get the abstraction to have SPH_main() called instead of domain
+        # Should not be hard coded
+        self.P = ((domain.rho0 * domain.c0 ** 2 / domain.gamma) * domain.rho0) * ((self.rho / domain.rho0) ** domain.gamma - 1)
 
 
 def dw_dr(q, h):
@@ -155,44 +209,6 @@ def w(q, h):
     return value
 
 
-def drho_dt(rij, vij, h, m2):
-    """Calculates the change in density for a time step"""
-    mag_r = np.sqrt(sum(rij ** 2))
-    eij = rij / mag_r
-    drho = m2 * dw_dr(rij, h) * np.dot(vij, eij)
-    return drho
-
-
-def pressure(rho, rho0, c0, gamma):
-    """Calculates the pressure for a given density"""
-    B = (rho0 * c0 ** 2 / gamma) * rho0
-    pres = B * ((rho / rho0) ** gamma - 1)
-    return pres
-
-
-# def forward_euler(rij, state, P2, rho_2, mu, c0, dt):
-#     """
-#     Because the equations are not coupled you can just time
-#     step through
-#     Variables of interest are v1, v2, rho and P1
-#     The 'State' variable contains these quantities
-#     :param state: [v1, v2, rho1, P1]
-#     :param P2:
-#     :param rho_2:
-#     :param mu:
-#     :param c0:
-#     :param dt:
-#     :return:
-#     """
-#     dv = dv_dt(rij, np.array((state[0], state[1])), state[2], state[3], P2, rho_2, h, m2, mu)
-#     print('DV:', dv)
-#     state[0] = state[0] + dt * dv[0]
-#     state[1] = state[1] + dt * dv[1]
-#     state[2] = state[2] + dt * drho_dt(rij, vij, h, m2)
-#     state[3] = pressure(rho, rho0, c0, gamma)
-#     return state
-
-
 # """Create a single object of the main SPH type"""
 domain = SPH_main()
 
@@ -208,8 +224,14 @@ domain.place_points(domain.min_x, domain.max_x)
 """This function needs to be called at each time step (or twice a time step if a second order time-stepping scheme is used)"""
 domain.allocate_to_grid()
 """This example is only finding the neighbours for a single partle - this will need to be inside the simulation loop and will need to be called for every particle"""
-# domain.neighbour_iterate(domain.particle_list[100])
+domain.neighbour_iterate(domain.particle_list[100])
 
+domain.time_step()
+
+
+# print(domain.particle_list.P)
+# for i in range(len(domain.particle_list)):
+#     domain.neighbour_iterate(domain.particle_list[i])
 
 # fig, ax1 = plt.subplots(1, 1, figsize=(10, 5))
 
@@ -218,8 +240,6 @@ domain.allocate_to_grid()
 #
 # plt.show()
 
-for i in range(len(domain.particle_list)):
-    domain.neighbour_iterate(domain.particle_list[i])
 
 # x_value = []
 # y_value = []
@@ -231,3 +251,8 @@ for i in range(len(domain.particle_list)):
 #     print(y_value)
 # ax3 = plt.subplot(111)
 # ax3.plot(x_value, y_value, 'b.')
+
+
+t1 = time.time()
+
+print('Time to run:', t1-t0)
