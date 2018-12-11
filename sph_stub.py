@@ -3,11 +3,9 @@
 from itertools import count
 import numpy as np
 from copy import deepcopy as copy
-
-
 import time
 
-t0 = time.time()
+
 
 
 class SPH_main(object):
@@ -38,11 +36,10 @@ class SPH_main(object):
         # Added quantities
         self.mu = 0.001
         self.rho0 = 1.225
-        self.g = np.array((0, -9.81))
+        self.g = np.array((0, -9.81)) # 100000 factor to see difference in couple of small time steps
         self.c0 = 20
         self.gamma = 7
         self.dt = 0.1 * self.h / self.c0
-
 
         # Keeping it as two time steps for now
         self.t_max = 3 * self.dt
@@ -124,8 +121,6 @@ class SPH_main(object):
                             # print('Density change', part.D)
 
 
-
-
     def forward_wrapper(self):
         """Stepping through using forwards Euler"""
         t = 0
@@ -140,16 +135,15 @@ class SPH_main(object):
             for particle in self.particle_list:
                 particle.update_values(self, self.dt)
 
-            print(self.particle_list[2].v)
+            # print(self.particle_list[2].v)
 
             t += self.dt
         self.log.append(copy(self.particle_list))
 
-        print('----')
-        for i in self.log:
-            print(i[2].v)
-        print('----')
-
+        # print('----')
+        # for i in self.log:
+        #     print(i[2].v)
+        # print('----')
 
         self.state_save()
 
@@ -172,6 +166,7 @@ class SPH_particle(object):
         self.rho = 1.225 #0
         self.P = 0.0
         self.m = 1.0 #0
+        self.boundary = False
 
 
     def calc_index(self):
@@ -182,6 +177,7 @@ class SPH_particle(object):
 
     def update_values(self, domain, dt):
         """Updates the state of the particle for one time step forwards"""
+        self.x = self.x + (self.v * dt)
         self.v = self.v + (self.a * dt)
         self.rho = self.rho + (self.D * dt)
         # Calling the SPH_main object. How to get the abstraction to have SPH_main() called instead of domain
@@ -225,40 +221,28 @@ def w(q, h):
     return value
 
 
-# """Create a single object of the main SPH type"""
-domain = SPH_main()
+if __name__ == "__main__":
+    t0 = time.time()
+    # """Create a single object of the main SPH type"""
+    domain = SPH_main()
 
-"""Calls the function that sets the simulation parameters"""
-domain.set_values()
-"""Initialises the search grid"""
-domain.initialise_grid()
+    """Calls the function that sets the simulation parameters"""
+    domain.set_values()
+    """Initialises the search grid"""
+    domain.initialise_grid()
 
-"""Places particles in a grid over the entire domain - In your code you will need to place the fluid particles in only the appropriate locations"""
-domain.place_points(domain.min_x, domain.max_x)
+    """Places particles in a grid over the entire domain - In your code you will need to place the fluid particles in only the appropriate locations"""
+    domain.place_points(domain.min_x, domain.max_x)
 
-"""This is only for demonstration only - In your code these functions will need to be inside the simulation loop"""
-"""This function needs to be called at each time step (or twice a time step if a second order time-stepping scheme is used)"""
-domain.allocate_to_grid()
-
-
-"""This example is only finding the neighbours for a single partle - this will need to be inside the simulation loop and will need to be called for every particle"""
-domain.forward_wrapper()
+    """This is only for demonstration only - In your code these functions will need to be inside the simulation loop"""
+    """This function needs to be called at each time step (or twice a time step if a second order time-stepping scheme is used)"""
+    domain.allocate_to_grid()
 
 
-# fig, ax1 = plt.subplots(1, 1, figsize=(10, 5))
-
-# x_value = []
-# y_value = []
-
-# for value in domain.particle_list:
-#     x_value.append(value.x[0])
-#     y_value.append(value.x[1])
-#     print(x_value)
-#     print(y_value)
-# ax3 = plt.subplot(111)
-# ax3.plot(x_value, y_value, 'b.')
+    """This example is only finding the neighbours for a single partle - this will need to be inside the simulation loop and will need to be called for every particle"""
+    domain.forward_wrapper()
 
 
-t1 = time.time()
+    t1 = time.time()
 
-print('Time to run:', t1-t0)
+    print('Time to run:', t1-t0)

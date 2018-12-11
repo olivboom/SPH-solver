@@ -4,8 +4,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import animation
 import matplotlib
+from sph_stub import SPH_main
+from sph_stub import SPH_particle
 
-def read_file_plot(filename, option = None):
+
+def read_file_plot(solutions, option = None):
    '''Reads the output file from the numerical simulator. The x and y values
    (coordinates) of the particles from the simulator are stored inside two
    lists.
@@ -19,9 +22,6 @@ def read_file_plot(filename, option = None):
                If option = 4: reads x and y coordinates and density (rho)
    Returns: scatterplot of xcoordinate and ycoordinate and'''
 
-   solutions = np.load(filename)
-
-   solutions = solutions[-1]
    xcoord = []
    ycoord = []
    v_x = []
@@ -41,18 +41,30 @@ def read_file_plot(filename, option = None):
        fig, ax1 = plt.subplots(1, 1, figsize=(8, 8))
        plt.scatter(xcoord, ycoord, c=v_x)
        plt.colorbar()
+       plt.xlim(-0.1, 1.1)
+       plt.ylim(-0.1, 1.1)
+       plt.clim(-0.006, 0)
    if option == 2:
        fig, ax1 = plt.subplots(1, 1, figsize=(8, 8))
        plt.scatter(xcoord, ycoord, c=v_y)
        plt.colorbar()
+       plt.xlim(-0.1, 1.1)
+       plt.ylim(-0.1, 1.1)
+       plt.clim(-100000 * 0.006, 0)
    if option == 3:
        fig, ax1 = plt.subplots(1, 1, figsize=(8, 8))
        plt.scatter(xcoord, ycoord, c=Pres)
        plt.colorbar()
+       plt.xlim(-0.1, 1.1)
+       plt.ylim(-0.1, 1.1)
+       plt.clim(-0.006, 0)
    if option == 4:
        fig, ax1 = plt.subplots(1, 1, figsize=(8, 8))
        plt.scatter(xcoord, ycoord, c=rho)
        plt.colorbar()
+       plt.xlim(-0.1, 1.1)
+       plt.ylim(-0.1, 1.1)
+       plt.clim(-0.006, 0)
    if option is None:
        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(8, 16))
        im1 = ax1.scatter(xcoord, ycoord, c=v_x)
@@ -64,5 +76,9 @@ def read_file_plot(filename, option = None):
        fig.colorbar(im3, ax = ax3)
        fig.colorbar(im4, ax = ax4)
 
+   plt.show()
 
-read_file_plot('State.npy')
+solutions = np.load('State.npy')
+
+for sol in solutions:
+    read_file_plot(sol, option=2)
