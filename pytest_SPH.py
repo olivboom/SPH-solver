@@ -28,12 +28,3 @@ def test_speed():
         assert value.v[0] == 0
         assert value.v[1] == 0
 
-def test_density():
-    domain = sph_stub.SPH_main()
-    domain.set_values()
-    domain.initialise_grid()
-    domain.place_points(domain.min_x, domain.max_x)
-    domain.allocate_to_grid()
-    
-    for value in domain.particle_list:
-        assert value.rho == 0
