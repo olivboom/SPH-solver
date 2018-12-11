@@ -2,6 +2,8 @@
 
 from itertools import count
 import numpy as np
+import tables
+
 import time
 
 t0 = time.time()
@@ -21,7 +23,7 @@ class SPH_main(object):
 
         self.particle_list = [] #np.array([])
         self.search_grid = np.empty((0, 0), object)
-
+        self.log = []
 
     def set_values(self):
         """Set simulation parameters."""
@@ -41,7 +43,7 @@ class SPH_main(object):
         self.dt = 0.1 * self.h / self.c0
 
         # Keeping it as two time steps for now
-        self.t_max = 4 * self.dt
+        self.t_max = 2 * self.dt
 
 
     def initialise_grid(self):
@@ -120,7 +122,7 @@ class SPH_main(object):
                             # print('Density change', part.D)
 
 
-    def time_step(self):
+    def forward_wrapper(self):
         """Stepping through using forwards Euler"""
         t = 0
 
@@ -128,21 +130,21 @@ class SPH_main(object):
             # plot the domain
             print(t)
             for particle in self.particle_list:
-                # Go through every particle and see the local changes
                 self.neighbour_iterate(particle)
-                # Want to update for each particle
-                # Should I call this in this method or in the neighbours method
-                # As each values effect the next one want to conduct simulatinuously
+
             for particle in self.particle_list:
                 particle.update_values(self, self.dt)
+
+            self.log.append(self.particle_list)
+
             t+= self.dt
 
+        self.state_save()
 
-'''
-The issue is that I want a method in SPH particle to conduct all of the 
-calculations for the update. But then I want the time stepping to take place
-in the main function 
-'''
+
+    def state_save(self):
+        np.save('State', self.log)
+
 
 class SPH_particle(object):
     """Object containing all the properties for a single particle"""
@@ -226,20 +228,10 @@ domain.place_points(domain.min_x, domain.max_x)
 """This function needs to be called at each time step (or twice a time step if a second order time-stepping scheme is used)"""
 domain.allocate_to_grid()
 """This example is only finding the neighbours for a single partle - this will need to be inside the simulation loop and will need to be called for every particle"""
-domain.time_step()
+domain.forward_wrapper()
 
-
-# print(domain.particle_list.P)
-# for i in range(len(domain.particle_list)):
-#     domain.neighbour_iterate(domain.particle_list[i])
 
 # fig, ax1 = plt.subplots(1, 1, figsize=(10, 5))
-
-# for i in range(0, len(domain.particle_list)):
-#     ax1.plot(domain.particle_list[i].x[0], domain.particle_list[i].x[1], 'bo')
-#
-# plt.show()
-
 
 # x_value = []
 # y_value = []
