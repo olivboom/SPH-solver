@@ -1,10 +1,18 @@
 """SPH class to find nearest neighbours..."""
 
 from itertools import count
+import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
+import ujson
 from copy import deepcopy as copy
+# from copy import copy as copy
 import time
+import matplotlib.pylab as plty
 
+
+from matplotlib import animation
+import matplotlib
 
 
 
@@ -36,13 +44,13 @@ class SPH_main(object):
         # Added quantities
         self.mu = 0.001
         self.rho0 = 1.225
-        self.g = np.array((0, -9.81)) # 100000 factor to see difference in couple of small time steps
+        self.g = np.array((0, -100000 * 9.81)) # 100000 factor to see difference in couple of small time steps
         self.c0 = 20
         self.gamma = 7
         self.dt = 0.1 * self.h / self.c0
 
         # Keeping it as two time steps for now
-        self.t_max = 3 * self.dt
+        self.t_max = 10 * self.dt
 
 
     def initialise_grid(self):
@@ -59,7 +67,7 @@ class SPH_main(object):
         self.search_grid = np.empty(self.max_list, object)
 
 
-    def place_points(self, xmin, xmax):
+    def place_points2(self, xmin, xmax):
         """Place points in a rectangle with a square spacing of size dx"""
 
         x = np.array(xmin)
@@ -69,7 +77,7 @@ class SPH_main(object):
             while x[1] <= xmax[1]:
                 particle = SPH_particle(self, x)
                 particle.calc_index()
-                if x[1] < 0.2:
+                if x[1] < 0.2 and x[1] > 0:
                     self.particle_list.append(particle)
                 elif x[1] < 0.5 and x[0] < 0.15:
                     self.particle_list.append(particle)
@@ -81,6 +89,75 @@ class SPH_main(object):
                     self.particle_list.append(particle)
                 x[1] += self.dx
             x[0] += self.dx
+
+    def place_points(self, xmin, xmax):
+        """Place points in a rectangle with a square spacing of size dx"""
+
+        x = np.array(xmin)
+        numx = int((xmax[0] - xmin[0]) / self.dx)
+        numy = int((xmax[1] - xmin[1]) / self.dx)
+        x_arr = np.linspace(0, 1, numx)
+        y_arr = np.linspace(0, 1, numy)
+        initial = np.empty((numx, numy))
+
+
+        for i, x in enumerate(x_arr):
+
+            for j, y in enumerate(y_arr):
+                if y < 0.2:
+                    initial[i, j] = 2
+                elif y < 0.5 and x < 0.15:
+                    initial[i, j] = 2
+                elif y > 0.5 and x < 0:
+                    initial[i, j] = 2
+                elif y > 0.2 and x > 1:
+                    initial[i, j] = 2
+                elif y > 1:
+                    initial[i, j] = 2
+        initial = np.pad(initial, (3, 3), mode='constant', constant_values=1)
+
+        # ax = sns.heatmap(initial, linewidth=0.5)
+        # plty.show()
+        # plt.imshow(initial.T, cmap='hot', interpolation='None')
+        # plt.show()
+
+
+        x_arr = np.linspace(xmin[0], xmax[0], numx+6)
+        y_arr = np.linspace(xmin[1], xmax[1], numy+6)
+
+        for i, x in enumerate(x_arr):
+            for j, y in enumerate(y_arr):
+                particle = SPH_particle(self, np.array([x, y]))
+                particle.calc_index()
+                if initial[i, j] == 2:
+                    self.particle_list.append(particle)
+                elif initial[i, j] == 1:
+                    particle.boundary = True
+                    self.particle_list.append(particle)
+
+
+    # def place_points(self, xmin, xmax):
+    #     """Place points in a rectangle with a square spacing of size dx"""
+    #
+    #     x = np.array(xmin)
+    #     numx = (xmax[0] - xmin[0]) / self.dx
+    #     numy = (xmax[1] - xmin[1]) / self.dx
+    #     x_arr = np.linspace(0, 1, numx)
+    #     y_arr = np.linspace(0, 1, numy)
+    #     for x in x_arr:
+    #         for y in y_arr:
+    #             particle = SPH_particle(self, np.array([x, y]))
+    #             particle.calc_index()
+    #             if y < 0.2:
+    #                 self.particle_list.append(particle)
+    #             elif y < 0.5 and x < 0.15:
+    #                 self.particle_list.append(particle)
+    #             elif y > 0.5 and x < 0:
+    #                 self.particle_list.append(particle)
+    #             elif y > 0.2 and x > 1:
+    #                 self.particle_list.append(particle)
+    #             elif y > 1:
+    #                 self.particle_list.append(particle)
 
 
     def allocate_to_grid(self):
@@ -126,6 +203,8 @@ class SPH_main(object):
         t = 0
 
         while t < self.t_max:
+            t_in = time.time()
+            # ujson.loads(ujson.dumps(self.particle_list))
             self.log.append(copy(self.particle_list))
             # plot the domain
             print(t)
@@ -136,7 +215,8 @@ class SPH_main(object):
                 particle.update_values(self, self.dt)
 
             # print(self.particle_list[2].v)
-
+            t_out = time.time()
+            print('dt loop took', (t_out - t_in))
             t += self.dt
         self.log.append(copy(self.particle_list))
 
@@ -177,12 +257,13 @@ class SPH_particle(object):
 
     def update_values(self, domain, dt):
         """Updates the state of the particle for one time step forwards"""
-        self.x = self.x + (self.v * dt)
-        self.v = self.v + (self.a * dt)
-        self.rho = self.rho + (self.D * dt)
-        # Calling the SPH_main object. How to get the abstraction to have SPH_main() called instead of domain
-        # Should not be hard coded
-        self.P = ((domain.rho0 * domain.c0 ** 2 / domain.gamma) * domain.rho0) * ((self.rho / domain.rho0) ** domain.gamma - 1)
+        if self.boundary == False:
+            self.x = self.x + (self.v * dt)
+            self.v = self.v + (self.a * dt)
+            self.rho = self.rho + (self.D * dt)
+            # Calling the SPH_main object. How to get the abstraction to have SPH_main() called instead of domain
+            # Should not be hard coded
+            self.P = ((domain.rho0 * domain.c0 ** 2 / domain.gamma) * domain.rho0) * ((self.rho / domain.rho0) ** domain.gamma - 1)
 
 
 def dw_dr(q, h):
@@ -242,7 +323,7 @@ if __name__ == "__main__":
     """This example is only finding the neighbours for a single partle - this will need to be inside the simulation loop and will need to be called for every particle"""
     domain.forward_wrapper()
 
-
+    import numpy_save as ns
     t1 = time.time()
 
     print('Time to run:', t1-t0)
