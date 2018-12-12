@@ -53,8 +53,8 @@ def read_file_plot(solutions, option=None):
         fig, ax1 = plt.subplots(1, 1, figsize=(16, 8))
         plt.scatter(xcoord, ycoord, c=Pres)
         plt.colorbar()
-        plt.xlim(-10, 30)
-        plt.ylim(-10, 30)
+        plt.xlim(-5, 25)
+        plt.ylim(-5, 15)
         plt.clim(-1e3, 1e5)
     if option == 4:
         fig, ax1 = plt.subplots(1, 1, figsize=(16, 8))
