@@ -21,11 +21,7 @@ def read_file_plot(filename, option = None, time=-1):
     Returns: scatterplot of xcoordinate and ycoordinate and'''
 
     solutions = np.load(filename)
-    Writer = animation.writers['ffmpeg']
-    writer = Writer(fps=1, bitrate=1800)
-    
-    
-    
+
     xhist = []
     yhist = []
     vxhist = []
@@ -41,7 +37,7 @@ def read_file_plot(filename, option = None, time=-1):
     Presmax = 0
     rhomin = 0
     rhomax = 0
-    
+
     for i in range(solutions.shape[0]):
         xcoord = []
         ycoord = []
@@ -80,8 +76,10 @@ def read_file_plot(filename, option = None, time=-1):
 
     if option == 1:
         fig1, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8))
-        im1 = ax1.scatter(xhist[0], yhist[0], c=vxhist[0], vmin=vxmin, vmax=vxmax)
-        im2 = ax2.scatter(xhist[-1], yhist[-1], c=vxhist[-1], vmin=vxmin, vmax=vxmax)
+        im1 = ax1.scatter(xhist[0], yhist[0], c=vxhist[0],
+                          vmin=vxmin, vmax=vxmax)
+        im2 = ax2.scatter(xhist[-1], yhist[-1], c=vxhist[-1],
+                          vmin=vxmin, vmax=vxmax)
         plt.colorbar(im1, ax = ax1)
         plt.colorbar(im2, ax = ax2)
         ax1.set_xlim(-0.1, 1.1)
@@ -99,8 +97,8 @@ def read_file_plot(filename, option = None, time=-1):
 #            plt.close()
         
         fig3 = plt.figure(figsize=(8,8))
-        scat = ax1.scatter(xhist[0], yhist[0], c=vxhist[0], vmin=vxmin,
-                           vmax=vxmax)
+        scat = ax1.scatter(xhist[0], yhist[0],c=vxhist[0],
+                           vmin=vxmin, vmax=vxmax)
         ax1 = plt.subplot(111)
         
 #        def init():
@@ -123,8 +121,10 @@ def read_file_plot(filename, option = None, time=-1):
     
     elif option == 2:
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8))
-        im1 = ax1.scatter(xhist[0], yhist[0], c=vyhist[0], vmin=vymin, vmax=vymax)
-        im2 = ax2.scatter(xhist[-1], yhist[-1], c=vyhist[-1], vmin=vymin, vmax=vymax)
+        im1 = ax1.scatter(xhist[0], yhist[0], c=vyhist[0],
+                          vmin=vymin, vmax=vymax)
+        im2 = ax2.scatter(xhist[-1], yhist[-1], c=vyhist[-1],
+                          vmin=vymin, vmax=vymax)
         plt.colorbar(im1, ax = ax1)
         plt.colorbar(im2, ax = ax2)
         ax1.set_xlim(-0.1, 1.1)
@@ -195,20 +195,7 @@ def read_file_plot(filename, option = None, time=-1):
                                        fargs=(xhist, yhist, rhohist, scat), interval=100, blit=True, repeat=False)
         
         return anim
-    
-    
-#    if option is None:
-#        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(8, 16))
-#        im1 = ax1.scatter(xhist[-1], yhist[-1], c=vxhist[-1])
-#        im2 = ax2.scatter(xhist[-1], yhist[-1], c=vyhist[-1])
-#        im3 = ax3.scatter(xhist[-1], yhist[-1], c=Preshist[-1])
-#        im4 = ax4.scatter(xhist[-1], yhist[-1], c=rhohist[-1])
-#        fig.colorbar(im1, ax = ax1)
-#        fig.colorbar(im2, ax = ax2)
-#        fig.colorbar(im3, ax = ax3)
-#        fig.colorbar(im4, ax = ax4)
-#        plt.show()
-    
+
     
 
 solutions = read_file_plot('State.npy', 1, time=-1)
