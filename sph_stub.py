@@ -8,7 +8,7 @@ from copy import deepcopy as copy
 import time
 import matplotlib.pylab as plty
 from matplotlib import animation
-import numpy_save as ns
+#import numpy_save as ns
 import pickle
 
 
@@ -172,12 +172,16 @@ class SPH_main(object):
         t = 0
         i = 0
         # print('Search Grid Resolution:', self.h * 2)
+        obj = []
         while t < self.t_max:
             i += 1
-
-            # self.log.append(copy(self.particle_list))
+            with open('State.npy', 'wb') as fp:
+                pickle.dump(self.particle_list, fp)
+            with open('State.npy', 'rb') as fp:
+                current = pickle.load(fp)
+            obj.append(current)
             if i == 5:
-                ns.run([self.particle_list])
+                #ns.run([self.particle_list])
                 i = 0
             # plot the domain
             # print(t)
@@ -209,9 +213,16 @@ class SPH_main(object):
             # print('Velocity:', self.particle_list[inspect].v)
             # print('Acceleration:', self.particle_list[inspect].a)
 
-        ns.run([self.particle_list])
-        # self.log.append(copy(self.particle_list))
-        self.state_save()
+        #ns.run([self.particle_list])
+        with open('State.npy', 'wb') as fp:
+            pickle.dump(self.particle_list, fp)
+        with open('State.npy', 'rb') as fp:
+            current = pickle.load(fp)
+        obj.append(current)
+        with open('State.npy', 'wb') as fp:
+            pickle.dump(obj, fp)
+        #self.log.append(copy(self.particle_list))
+        #self.state_save()
 
     def state_save(self):
         np.save('State', self.log)

@@ -18,9 +18,8 @@ def read_file_plot(filename, option=None, time=-1, image=False):
                    If option = 3: reads x and y coordinates and pressure
                    If option = 4: reads x and y coordinates and density (rho)
     Returns: scatterplot of xcoordinate and ycoordinate and'''
-
     solutions = np.load(filename)
-
+        
     xhist = []
     yhist = []
     vxhist = []
@@ -37,9 +36,9 @@ def read_file_plot(filename, option=None, time=-1, image=False):
     rhomin = 0
     rhomax = 0
 
-    print(solutions.shape[0])
+    print(len(solutions))
 
-    for i in range(solutions.shape[0]):
+    for i in range(len(solutions)):
         xcoord = []
         ycoord = []
         v_x = []
@@ -48,7 +47,7 @@ def read_file_plot(filename, option=None, time=-1, image=False):
         rho = []
 
         current = solutions[i]
-
+        
         for i in range(len(current)):
             xcoord.append(current[i].x[0])
             ycoord.append(current[i].x[1])
@@ -83,22 +82,22 @@ def read_file_plot(filename, option=None, time=-1, image=False):
                           vmin=vxmin, vmax=vxmax)
         plt.colorbar(im1, ax=ax1)
         plt.colorbar(im2, ax=ax2)
-        ax1.set_xlim(-0.1, 1.1)
-        ax1.set_ylim(-0.1, 1.1)
-        ax2.set_xlim(-0.1, 1.1)
-        ax2.set_ylim(-0.1, 1.1)
+        ax1.set_xlim(-5, 25)
+        ax1.set_ylim(-5, 17)
+        ax2.set_xlim(-5, 25)
+        ax2.set_ylim(-5, 17)
 
         if image is True:
-            for i in range(solutions.shape[0]):
+            for i in range(len(solutions)):
                 fig, ax = plt.subplots(1, 1, figsize=(8, 8))
                 im = ax.scatter(xhist[i], yhist[i], c=vxhist[i],
                                          vmin=vxmin, vmax=vxmax)
                 plt.colorbar(im, ax=ax)
-                plt.savefig('image{}.png'.format(i))
+                plt.savefig('.\plot_images\image{}.png'.format(i))
                 plt.close()
 
         fig3 = plt.figure(figsize=(8, 8))
-        scat = ax1.scatter(xhist[0], yhist[0], c=vxhist[0],
+        scat = ax1.scatter([], [], c=[],
                            vmin=vxmin, vmax=vxmax)
         ax1 = plt.subplot(111)
 
@@ -109,7 +108,7 @@ def read_file_plot(filename, option=None, time=-1, image=False):
             return scat,
 
         anim = animation.FuncAnimation(fig3, animate,
-                                       frames=np.arange(0, solutions.shape[0]),
+                                       frames=np.arange(0, len(solutions)),
                                        fargs=(xhist, yhist, vxhist, scat),
                                        interval=1, blit=True, repeat=True)
 
@@ -123,10 +122,10 @@ def read_file_plot(filename, option=None, time=-1, image=False):
                           vmin=vymin, vmax=vymax)
         plt.colorbar(im1, ax=ax1)
         plt.colorbar(im2, ax=ax2)
-        ax1.set_xlim(-0.1, 1.1)
-        ax1.set_ylim(-0.1, 1.1)
-        ax2.set_xlim(-0.1, 1.1)
-        ax2.set_ylim(-0.1, 1.1)
+        ax1.set_xlim(-10, 30)
+        ax1.set_ylim(-10, 30)
+        ax2.set_xlim(-10, 30)
+        ax2.set_ylim(-10, 30)
 
         if image is True:
             for i in range(solutions.shape[0]):
@@ -161,10 +160,10 @@ def read_file_plot(filename, option=None, time=-1, image=False):
                           vmax=Presmax)
         plt.colorbar(im1, ax=ax1)
         plt.colorbar(im2, ax=ax2)
-        ax1.set_xlim(-0.1, 1.1)
-        ax1.set_ylim(-0.1, 1.1)
-        ax2.set_xlim(-0.1, 1.1)
-        ax2.set_ylim(-0.1, 1.1)
+        ax1.set_xlim(-10, 30)
+        ax1.set_ylim(-10, 30)
+        ax2.set_xlim(-10, 30)
+        ax2.set_ylim(-10, 30)
 
         if image is True:
             for i in range(solutions.shape[0]):
@@ -199,10 +198,10 @@ def read_file_plot(filename, option=None, time=-1, image=False):
                           vmin=rhomin, vmax=rhomax)
         plt.colorbar(im1, ax=ax1)
         plt.colorbar(im2, ax=ax2)
-        ax1.set_xlim(-0.1, 1.1)
-        ax1.set_ylim(-0.1, 1.1)
-        ax2.set_xlim(-0.1, 1.1)
-        ax2.set_ylim(-0.1, 1.1)
+        ax1.set_xlim(-10, 30)
+        ax1.set_ylim(-10, 30)
+        ax2.set_xlim(-10, 30)
+        ax2.set_ylim(-10, 30)
 
         if image is True:
             for i in range(solutions.shape[0]):
@@ -230,4 +229,4 @@ def read_file_plot(filename, option=None, time=-1, image=False):
         return anim
 
 
-solutions = read_file_plot('State1.npy', 2, time=-1)
+solutions = read_file_plot('State.npy', 1, time=-1, image=True)
