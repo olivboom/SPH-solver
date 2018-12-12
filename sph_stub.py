@@ -4,16 +4,12 @@ from itertools import count
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-import ujson
 from copy import deepcopy as copy
-# from copy import copy as copy
 import time
 import matplotlib.pylab as plty
-
-
 from matplotlib import animation
-import matplotlib
-
+import numpy_save as ns
+import pickle
 
 
 class SPH_main(object):
@@ -28,30 +24,29 @@ class SPH_main(object):
         self.max_x = np.zeros(2)
         self.max_list = np.zeros(2, int)
 
-        self.particle_list = [] #np.array([])
+        self.particle_list = []  # np.array([])
         self.search_grid = np.empty((0, 0), object)
         self.log = []
 
     def set_values(self):
         """Set simulation parameters."""
-
+        # self.scale = 30
         self.min_x[:] = (0.0, 0.0)
-        self.max_x[:] = (1.0, 1.0)
-        self.dx = 0.02
+        self.max_x[:] = (20.0, 10.0)
+        self.dx =  1 #0.02 # self.scale *
         self.h_fac = 2
         self.h = self.dx * self.h_fac
 
         # Added quantities
         self.mu = 0.001
-        self.rho0 = 1.225
-        self.g = np.array((0, -100000 * 9.81)) # 100000 factor to see difference in couple of small time steps
+        self.rho0 = 1000
+        self.g = np.array((0, -9.81))  # 100000 factor to see difference in couple of small time steps
         self.c0 = 20
         self.gamma = 7
         self.dt = 0.1 * self.h / self.c0
+        self.B = (self.rho0 * self.c0 ** 2) / self.gamma
 
-        # Keeping it as two time steps for now
-        self.t_max = 10 * self.dt
-
+        self.t_max = 200 * self.dt
 
     def initialise_grid(self):
         """Initalise simulation grid."""
@@ -67,53 +62,29 @@ class SPH_main(object):
         self.search_grid = np.empty(self.max_list, object)
 
 
-    def place_points2(self, xmin, xmax):
-        """Place points in a rectangle with a square spacing of size dx"""
-
-        x = np.array(xmin)
-
-        while x[0] <= xmax[0]:
-            x[1] = xmin[1]
-            while x[1] <= xmax[1]:
-                particle = SPH_particle(self, x)
-                particle.calc_index()
-                if x[1] < 0.2 and x[1] > 0:
-                    self.particle_list.append(particle)
-                elif x[1] < 0.5 and x[0] < 0.15:
-                    self.particle_list.append(particle)
-                elif x[1] > 0.5 and x[0] < 0:
-                    self.particle_list.append(particle)
-                elif x[1] > 0.2 and x[0] > 1:
-                    self.particle_list.append(particle)
-                elif x[1] > 1:
-                    self.particle_list.append(particle)
-                x[1] += self.dx
-            x[0] += self.dx
-
     def place_points(self, xmin, xmax):
         """Place points in a rectangle with a square spacing of size dx"""
 
         x = np.array(xmin)
         numx = int((xmax[0] - xmin[0]) / self.dx)
         numy = int((xmax[1] - xmin[1]) / self.dx)
-        x_arr = np.linspace(0, 1, numx)
-        y_arr = np.linspace(0, 1, numy)
+        x_arr = np.linspace(0, 20, numx)
+        y_arr = np.linspace(0, 10, numy)
         initial = np.empty((numx, numy))
 
-
         for i, x in enumerate(x_arr):
-
             for j, y in enumerate(y_arr):
-                if y < 0.2:
+                if y < 5:
                     initial[i, j] = 2
-                elif y < 0.5 and x < 0.15:
+                elif y < 10 and x < 5:
                     initial[i, j] = 2
-                elif y > 0.5 and x < 0:
-                    initial[i, j] = 2
-                elif y > 0.2 and x > 1:
-                    initial[i, j] = 2
-                elif y > 1:
-                    initial[i, j] = 2
+                # elif y > 5 and x < 0:
+                #     initial[i, j] = 2
+                # elif y > 10 and x > 20:
+                #     initial[i, j] = 2
+                # elif y > 10:
+                #     initial[i, j] = 2
+
         initial = np.pad(initial, (3, 3), mode='constant', constant_values=1)
 
         # ax = sns.heatmap(initial, linewidth=0.5)
@@ -121,43 +92,21 @@ class SPH_main(object):
         # plt.imshow(initial.T, cmap='hot', interpolation='None')
         # plt.show()
 
-
-        x_arr = np.linspace(xmin[0], xmax[0], numx+6)
-        y_arr = np.linspace(xmin[1], xmax[1], numy+6)
+        x_arr = np.linspace(xmin[0], xmax[0], numx + 6)
+        y_arr = np.linspace(xmin[1], xmax[1], numy + 6)
 
         for i, x in enumerate(x_arr):
             for j, y in enumerate(y_arr):
-                particle = SPH_particle(self, np.array([x, y]))
+                # TEMPORARY
+                prefactor = (1000 / self.rho0) ** self.gamma
+                P = (prefactor - 1) * self.B
+                particle = SPH_particle(self, np.array([x, y]), m=self.dx ** 2 * self.rho0, P=P)
                 particle.calc_index()
                 if initial[i, j] == 2:
                     self.particle_list.append(particle)
                 elif initial[i, j] == 1:
                     particle.boundary = True
                     self.particle_list.append(particle)
-
-
-    # def place_points(self, xmin, xmax):
-    #     """Place points in a rectangle with a square spacing of size dx"""
-    #
-    #     x = np.array(xmin)
-    #     numx = (xmax[0] - xmin[0]) / self.dx
-    #     numy = (xmax[1] - xmin[1]) / self.dx
-    #     x_arr = np.linspace(0, 1, numx)
-    #     y_arr = np.linspace(0, 1, numy)
-    #     for x in x_arr:
-    #         for y in y_arr:
-    #             particle = SPH_particle(self, np.array([x, y]))
-    #             particle.calc_index()
-    #             if y < 0.2:
-    #                 self.particle_list.append(particle)
-    #             elif y < 0.5 and x < 0.15:
-    #                 self.particle_list.append(particle)
-    #             elif y > 0.5 and x < 0:
-    #                 self.particle_list.append(particle)
-    #             elif y > 0.2 and x > 1:
-    #                 self.particle_list.append(particle)
-    #             elif y > 1:
-    #                 self.particle_list.append(particle)
 
 
     def allocate_to_grid(self):
@@ -175,58 +124,94 @@ class SPH_main(object):
         and calculates the acceleration vector, density change and
         pressure at the new density
         """
+        # print(part.list_num)
+        part.a = self.g
+        part.D = 0.0
         for i in range(max(0, part.list_num[0] - 1),
                        min(part.list_num[0] + 2, self.max_list[0])):
             for j in range(max(0, part.list_num[1] - 1),
                            min(part.list_num[1] + 2, self.max_list[1])):
                 for other_part in self.search_grid[i, j]:
                     if part is not other_part:
-                        dn = part.x - other_part.x
-                        dist = np.sqrt(np.sum(dn ** 2))
-                        if dist < 2.0 * self.h:
-                            # vij = part.v - other_part.v
-                            # Gives acceleration at t[0] to then calculate v[1]
-                            part.a = self.g
-                            part.a += (- other_part.m * (part.P / part.rho ** 2 + other_part.P/ other_part.rho ** 2) *
-                            dw_dr(dist / self.h, self.h) * dn / dist +
-                                        (self.mu * other_part.m * (part.rho ** -2 + other_part.rho ** -2) *
-                                             dw_dr(dist / self.h, self.h) * (part.v - other_part.v) / dist))
+                        r_ij = part.x - other_part.x
+                        mag_r_ij = np.sqrt((r_ij[0] ** 2) + (r_ij[1] ** 2))
+                        if mag_r_ij < 2 * self.h:# and other_part.boundary == False:
+                            mj = other_part.m
+                            dwdr = dw_dr(mag_r_ij, self.h)
+                            pre_fac = mj * dwdr / mag_r_ij
 
-                            part.D += other_part.m * dw_dr(dist / self.h, self.h) * np.dot(part.v - other_part.v, dn / dist)
-                            # print("id:", other_part.id)
-                            # print('Acceleration', part.a)
-                            # print('Density change', part.D)
+                            inv_rhoi2 = part.rho ** -2
+                            inv_rhoj2 = other_part.rho ** -2
+                            v_ij = part.v - other_part.v
+                            fac2_1 = self.mu * (inv_rhoi2 + inv_rhoj2) * v_ij
+                            Pi = part.P
+                            Pj = other_part.P
+                            fac2_2 = ((Pi * inv_rhoi2) + (Pj * inv_rhoj2)) * r_ij
+                            post_fac = fac2_1 - fac2_2
+
+                            part.a = part.a + (pre_fac * post_fac)
+                            part.D = part.D + pre_fac * np.dot(v_ij, r_ij)
+
+                            # if (not(part.boundary) and other_part.boundary):
+                            #     if (part.x[1]<self.h):
+                            #         print(fac2_2,' ', pre_fac, ' ',pre_fac * post_fac,' ',part.P)
+
+                            # if part.id == 200:
+                            #     print("id:", part.id)
+                            #     print('X coord:', part.x)
+                            #     print('Velocity:', part.v)
+                            #     print('Boundary:', part.boundary)
+                            #     print('Acceleration', part.a)
+                            #     print('Density change', part.D)
+
+                        # elif mag_r_ij < 2 * self.h and other_part.boundary == True:
 
 
     def forward_wrapper(self):
         """Stepping through using forwards Euler"""
         t = 0
-
+        i = 0
+        # print('Search Grid Resolution:', self.h * 2)
         while t < self.t_max:
-            t_in = time.time()
-            # ujson.loads(ujson.dumps(self.particle_list))
-            self.log.append(copy(self.particle_list))
+            i += 1
+
+            # self.log.append(copy(self.particle_list))
+            if i == 5:
+                ns.run([self.particle_list])
+                i = 0
             # plot the domain
-            print(t)
+            # print(t)
+            t_in_1 = time.time()
             for particle in self.particle_list:
                 self.neighbour_iterate(particle)
+            t_out_1 = time.time()
 
+            print('Neighbour Loop', (t_out_1 - t_in_1))
+
+            t_in = time.time()
             for particle in self.particle_list:
-                particle.update_values(self, self.dt)
+                particle.update_values(self.B, self.rho0, self.gamma, self.dt)
+                if particle.boundary is True:
+                    print('Boundary Coordinates: ', particle.x)
 
-            # print(self.particle_list[2].v)
+                # if particle.id == 1411:
+                #     print(i)
+
             t_out = time.time()
-            print('dt loop took', (t_out - t_in))
+            # print('Update Loop', (t_out - t_in))
+            # print('dt loop took', (t_out - t_in))
+
             t += self.dt
-        self.log.append(copy(self.particle_list))
+            # inspect = 690
+            # print('dt', self.dt)
+            # print('Boundary:', self.particle_list[inspect].boundary)
+            # print('X coord:', self.particle_list[inspect].x)
+            # print('Velocity:', self.particle_list[inspect].v)
+            # print('Acceleration:', self.particle_list[inspect].a)
 
-        # print('----')
-        # for i in self.log:
-        #     print(i[2].v)
-        # print('----')
-
+        ns.run([self.particle_list])
+        # self.log.append(copy(self.particle_list))
         self.state_save()
-
 
     def state_save(self):
         np.save('State', self.log)
@@ -236,16 +221,17 @@ class SPH_particle(object):
     """Object containing all the properties for a single particle"""
     _ids = count(0)
 
-    def __init__(self, main_data=None, x=np.zeros(2)):
+    def __init__(self, main_data=None, x=np.zeros(2), m=0, P=0):
         self.id = next(self._ids)
         self.main_data = main_data
         self.x = np.array(x)
         self.v = np.zeros(2)
-        self.a = np.zeros(2)
+        self.a = np.array([0, -9.81])
+        # self.a = np.zeros(2)
         self.D = 0
-        self.rho = 1.225 #0
-        self.P = 0.0
-        self.m = 1.0 #0
+        self.rho = 1000 # 0
+        self.P = P
+        self.m = m  # 0
         self.boundary = False
 
 
@@ -254,16 +240,27 @@ class SPH_particle(object):
         self.list_num = np.array((self.x - self.main_data.min_x) /
                                  (2.0 * self.main_data.h), int)
 
-
-    def update_values(self, domain, dt):
+    def update_values(self, B, rho0, gamma, dt):
         """Updates the state of the particle for one time step forwards"""
         if self.boundary == False:
             self.x = self.x + (self.v * dt)
             self.v = self.v + (self.a * dt)
-            self.rho = self.rho + (self.D * dt)
-            # Calling the SPH_main object. How to get the abstraction to have SPH_main() called instead of domain
-            # Should not be hard coded
-            self.P = ((domain.rho0 * domain.c0 ** 2 / domain.gamma) * domain.rho0) * ((self.rho / domain.rho0) ** domain.gamma - 1)
+
+            # if (self.x[1]<self.main_data.h):
+            #     print(self.a,' ',self.P,' ',self.rho)
+
+        self.rho = self.rho + (self.D * dt)
+        prefactor = self.rho / rho0
+        self.P = (prefactor ** gamma - 1) * B
+
+        # print('Pressure', self.P)
+        # if self.boundary is False:
+        #     print(self.list_num)
+        # if self.id == 100:
+        #     print('Boundary:', self.boundary)
+        #     print('X location:', self.x)
+        #     print('Grid Point : ',self.list_num)
+        # self.calc_index()
 
 
 def dw_dr(q, h):
@@ -275,12 +272,10 @@ def dw_dr(q, h):
     :return:
     The gradient of the scaling factor associated with the smoothing kernel
     """
-    if 1 >= q >= 0:
-        value = 10 / (7 * np.pi * h ** 2) * (-3 * q + 2.25 * q ** 2)
-    elif q >= 1 and q <= 2:
-        value = 10 / (7 * np.pi * h ** 2) * -0.75 * (2 - q) ** 2
+    if q<1:
+        value = 10 / (7 * np.pi * h ** 3) * (-3 * q + 2.25 * q ** 2)
     else:
-        value = 0
+        value = -10 / (7 * np.pi * h ** 3) * 0.75 * (2 - q) ** 2
     return value
 
 
@@ -319,11 +314,12 @@ if __name__ == "__main__":
     """This function needs to be called at each time step (or twice a time step if a second order time-stepping scheme is used)"""
     domain.allocate_to_grid()
 
-
+    # domain.particle_list = domain.particle_list[100]
     """This example is only finding the neighbours for a single partle - this will need to be inside the simulation loop and will need to be called for every particle"""
     domain.forward_wrapper()
 
-    import numpy_save as ns
+    # import numpy_save as ns
+
     t1 = time.time()
 
-    print('Time to run:', t1-t0)
+    print('Time to run:', t1 - t0)
