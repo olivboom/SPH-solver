@@ -20,6 +20,7 @@ class SPH_main(object):
         self.h = 0.0
         self.h_fac = 0.0
         self.dx = 0.0
+        self.k = 0
 
         self.min_x = np.zeros(2)
         self.max_x = np.zeros(2)
@@ -29,14 +30,16 @@ class SPH_main(object):
         self.search_grid = np.empty((0, 0), object)
         self.log = []
 
+
     def set_values(self):
         """Set simulation parameters."""
         # self.scale = 30
         self.min_x[:] = (0.0, 0.0)
         self.max_x[:] = (20.0, 10.0)
-        self.dx =  1 #0.02 # self.scale *
+        self.dx = 0.5 #0.02
         self.h_fac = 2
         self.h = self.dx * self.h_fac
+        self.k = 0.8
 
         # Added quantities
         self.mu = 0.001
@@ -63,7 +66,7 @@ class SPH_main(object):
         self.search_grid = np.empty(self.max_list, object)
 
 
-    def place_points(self, xmin, xmax):
+    def place_points(self, xmin, xmax, geometry='default'):
         """Place points in a rectangle with a square spacing of size dx"""
 
         x = np.array(xmin)
@@ -73,25 +76,37 @@ class SPH_main(object):
         y_arr = np.linspace(0, 10, numy)
         initial = np.empty((numx, numy))
 
-        for i, x in enumerate(x_arr):
-            for j, y in enumerate(y_arr):
-                if y < 5:
-                    initial[i, j] = 2
-                elif y < 10 and x < 5:
-                    initial[i, j] = 2
-                # elif y > 5 and x < 0:
-                #     initial[i, j] = 2
-                # elif y > 10 and x > 20:
-                #     initial[i, j] = 2
-                # elif y > 10:
-                #     initial[i, j] = 2
+        if geometry == 'default':
+            for i, x in enumerate(x_arr):
+                for j, y in enumerate(y_arr):
+                    if y < 2:
+                        initial[i, j] = 2
+                    elif y < 5 and x < 3:
+                        initial[i, j] = 2
+            initial = np.pad(initial, (3, 3), mode='constant', constant_values=1)
 
-        initial = np.pad(initial, (3, 3), mode='constant', constant_values=1)
+        elif geometry == 'wave':
+            for i, x in enumerate(x_arr):
+                for j, y in enumerate(y_arr):
+                    if y < 8 and x < 3:
+                        initial[i, j] = 2
+                    elif y < 0.5 * x - 1.5 and x > 3 and x < 17:
+                        initial[i, j] = 1
+                    elif y < 7 and x > 17:
+                        initial[i, j] = 1
+            initial = np.pad(initial, (3, 3), mode='constant', constant_values=1)
 
-        # ax = sns.heatmap(initial, linewidth=0.5)
-        # plty.show()
-        # plt.imshow(initial.T, cmap='hot', interpolation='None')
-        # plt.show()
+        elif geometry == 'wave_2':
+            for i, x in enumerate(x_arr):
+                for j, y in enumerate(y_arr):
+                    if y < 8 and x < 4:
+                        initial[i, j] = 2
+                    elif y < 0.5 * x - 4 and x > 8 and x < 16:
+                        initial[i, j] = 1
+                    elif y < 4 and x > 16:
+                        initial[i, j] = 1
+            initial = np.pad(initial, (3, 3), mode='constant', constant_values=1)
+
 
         x_arr = np.linspace(xmin[0], xmax[0], numx + 6)
         y_arr = np.linspace(xmin[1], xmax[1], numy + 6)
@@ -138,7 +153,8 @@ class SPH_main(object):
                         mag_r_ij = np.sqrt((r_ij[0] ** 2) + (r_ij[1] ** 2))
                         if mag_r_ij < 2 * self.h:# and other_part.boundary == False:
                             mj = other_part.m
-                            dwdr = dw_dr(mag_r_ij, self.h)
+                            q = mag_r_ij / self.h
+                            dwdr = dw_dr(q, self.h)
                             pre_fac = mj * dwdr / mag_r_ij
 
                             inv_rhoi2 = part.rho ** -2
@@ -153,9 +169,12 @@ class SPH_main(object):
                             part.a = part.a + (pre_fac * post_fac)
                             part.D = part.D + pre_fac * np.dot(v_ij, r_ij)
 
-                            # if (not(part.boundary) and other_part.boundary):
-                            #     if (part.x[1]<self.h):
-                            #         print(fac2_2,' ', pre_fac, ' ',pre_fac * post_fac,' ',part.P)
+                        # elif mag_r_ij < self.k and other_part.boundary == True:
+                        #
+                        #     pre_factor = (self.c0 ** 2) * (self.k ** (self.gamma - 1) / (self.gamma * self.k)) / mag_r_ij
+                        #     term_1 = (self.k / mag_r_ij) ** 2
+                        #     acc_mag = pre_factor * (term_1 * (term_1 - 1))
+                        #     part.a = part.a + (r_ij/mag_r_ij) * acc_mag
 
                             # if part.id == 200:
                             #     print("id:", part.id)
@@ -165,13 +184,29 @@ class SPH_main(object):
                             #     print('Acceleration', part.a)
                             #     print('Density change', part.D)
 
-                        # elif mag_r_ij < 2 * self.h and other_part.boundary == True:
+
+    def density_smoothing(self, part):
+        numerator = 0
+        denominator = 0
+        for i in range(max(0, part.list_num[0] - 1),
+                       min(part.list_num[0] + 2, self.max_list[0])):
+            for j in range(max(0, part.list_num[1] - 1),
+                           min(part.list_num[1] + 2, self.max_list[1])):
+                for other_part in self.search_grid[i, j]:
+                    r_ij = part.x - other_part.x
+                    mag_r_ij = np.sqrt((r_ij[0] ** 2) + (r_ij[1] ** 2))
+                    if mag_r_ij < 2 * self.h:
+                        q = mag_r_ij / self.h
+                        numerator = numerator + w(q, self.h)
+                        denominator = denominator + (w(q, self.h) / other_part.rho)
+        part.rho = numerator / denominator
 
 
     def forward_wrapper(self):
         """Stepping through using forwards Euler"""
         t = 0
         i = 0
+<<<<<<< HEAD
         # print('Search Grid Resolution:', self.h * 2)
         obj = []
         while t < self.t_max:
@@ -181,11 +216,24 @@ class SPH_main(object):
             with open('State.npy', 'rb') as fp:
                 current = pickle.load(fp)
             obj.append(current)
+=======
+        j = 0
+        while t < self.t_max:
+            i += 1
+            j += 1
+            # self.log.append(copy(self.particle_list))
+>>>>>>> 8f56f8f081a450fe32244b3a7ba42c58d9564de9
             if i == 5:
                 #ns.run([self.particle_list])
                 i = 0
+
+            if j == 20:
+                print('Smoothing')
+                for particle in self.particle_list:
+                    self.density_smoothing(particle)
+                j = 0
+
             # plot the domain
-            # print(t)
             t_in_1 = time.time()
             for particle in self.particle_list:
                 self.neighbour_iterate(particle)
@@ -196,23 +244,12 @@ class SPH_main(object):
             t_in = time.time()
             for particle in self.particle_list:
                 particle.update_values(self.B, self.rho0, self.gamma, self.dt)
-                if particle.boundary is True:
-                    print('Boundary Coordinates: ', particle.x)
-
-                # if particle.id == 1411:
-                #     print(i)
+                # if particle.boundary is True:
+                #     print('Boundary Coordinates: ', particle.x)
 
             t_out = time.time()
-            # print('Update Loop', (t_out - t_in))
-            # print('dt loop took', (t_out - t_in))
 
             t += self.dt
-            # inspect = 690
-            # print('dt', self.dt)
-            # print('Boundary:', self.particle_list[inspect].boundary)
-            # print('X coord:', self.particle_list[inspect].x)
-            # print('Velocity:', self.particle_list[inspect].v)
-            # print('Acceleration:', self.particle_list[inspect].a)
 
         #ns.run([self.particle_list])
         with open('State.npy', 'wb') as fp:
@@ -239,11 +276,10 @@ class SPH_particle(object):
         self.x = np.array(x)
         self.v = np.zeros(2)
         self.a = np.array([0, -9.81])
-        # self.a = np.zeros(2)
         self.D = 0
-        self.rho = 1000 # 0
+        self.rho = 1000
         self.P = P
-        self.m = m  # 0
+        self.m = m
         self.boundary = False
 
 
@@ -265,15 +301,6 @@ class SPH_particle(object):
         prefactor = self.rho / rho0
         self.P = (prefactor ** gamma - 1) * B
 
-        # print('Pressure', self.P)
-        # if self.boundary is False:
-        #     print(self.list_num)
-        # if self.id == 100:
-        #     print('Boundary:', self.boundary)
-        #     print('X location:', self.x)
-        #     print('Grid Point : ',self.list_num)
-        # self.calc_index()
-
 
 def dw_dr(q, h):
     """
@@ -284,7 +311,7 @@ def dw_dr(q, h):
     :return:
     The gradient of the scaling factor associated with the smoothing kernel
     """
-    if q<1:
+    if q < 1:
         value = 10 / (7 * np.pi * h ** 3) * (-3 * q + 2.25 * q ** 2)
     else:
         value = -10 / (7 * np.pi * h ** 3) * 0.75 * (2 - q) ** 2
@@ -314,19 +341,17 @@ if __name__ == "__main__":
     # """Create a single object of the main SPH type"""
     domain = SPH_main()
 
-    """Calls the function that sets the simulation parameters"""
     domain.set_values()
-    """Initialises the search grid"""
+
     domain.initialise_grid()
 
-    """Places particles in a grid over the entire domain - In your code you will need to place the fluid particles in only the appropriate locations"""
+    """Places particles in a grid over the entire domain"""
     domain.place_points(domain.min_x, domain.max_x)
 
     """This is only for demonstration only - In your code these functions will need to be inside the simulation loop"""
     """This function needs to be called at each time step (or twice a time step if a second order time-stepping scheme is used)"""
     domain.allocate_to_grid()
 
-    # domain.particle_list = domain.particle_list[100]
     """This example is only finding the neighbours for a single partle - this will need to be inside the simulation loop and will need to be called for every particle"""
     domain.forward_wrapper()
 
