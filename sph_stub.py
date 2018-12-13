@@ -3,12 +3,9 @@
 from itertools import count
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
-from copy import deepcopy as copy
 import time
 import matplotlib.pylab as plty
 from matplotlib import animation
-#import numpy_save as ns
 import pickle
 
 
@@ -206,26 +203,21 @@ class SPH_main(object):
         """Stepping through using forwards Euler"""
         t = 0
         i = 0
-<<<<<<< HEAD
+        j = 0
         # print('Search Grid Resolution:', self.h * 2)
         obj = []
         while t < self.t_max:
-            i += 1
+            i = i + 1
+            j = j + 1
             with open('State.npy', 'wb') as fp:
                 pickle.dump(self.particle_list, fp)
             with open('State.npy', 'rb') as fp:
                 current = pickle.load(fp)
             obj.append(current)
-=======
-        j = 0
-        while t < self.t_max:
-            i += 1
-            j += 1
-            # self.log.append(copy(self.particle_list))
->>>>>>> 8f56f8f081a450fe32244b3a7ba42c58d9564de9
-            if i == 5:
+
+#            if i == 5:
                 #ns.run([self.particle_list])
-                i = 0
+#                i = 0
 
             if j == 20:
                 print('Smoothing')
