@@ -343,5 +343,5 @@ def read_file_plot(filename, option=None, image=False):
         return anim
 
 
-solutions = read_file_plot('State.npy', 1)
+solutions = read_file_plot('State.npy', 3)
 

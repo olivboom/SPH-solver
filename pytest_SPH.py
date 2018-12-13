@@ -4,12 +4,16 @@ import numpy as np
 def test_grid():
     ''' Tests if the initial grid has been populated by particles
     '''
-    solutions = np.load('State.npy')
+    domain = sph_stub.SPH_main()
+    domain.set_values()
+    domain.initialise_grid()
+    domain.place_points(domain.min_x, domain.max_x)
+    domain.allocate_to_grid()
     
     x_value = []
     y_value = []
-    for log in solutions:
-        for particle in log:
+    
+    for particle in domain.particle_list:
            x_value.append(particle.x[0])
            y_value.append(particle.x[1])
 
