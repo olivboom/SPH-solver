@@ -206,13 +206,23 @@ class SPH_main(object):
         t = 0
         i = 0
         j = 0
+        obj = []
         while t < self.t_max:
             i += 1
             j += 1
+
+
+
+            with open('State.npy', 'wb') as fp:
+                pickle.dump(self.particle_list, fp)
+            with open('State.npy', 'rb') as fp:
+                current = pickle.load(fp)
+            obj.append(current)
+
             # self.log.append(copy(self.particle_list))
-            if i == 5:
-                ns.run([self.particle_list])
-                i = 0
+            # if i == 5:
+            #     ns.run([self.particle_list])
+            #     i = 0
 
             if j == 20:
                 print('Smoothing')
@@ -231,14 +241,21 @@ class SPH_main(object):
             t_in = time.time()
             for particle in self.particle_list:
                 particle.update_values(self.B, self.rho0, self.gamma, self.dt)
-                # if particle.boundary is True:
-                #     print('Boundary Coordinates: ', particle.x)
 
             t_out = time.time()
-
             t += self.dt
 
-        ns.run([self.particle_list])
+
+        with open('State.npy', 'wb') as fp:
+            pickle.dump(self.particle_list, fp)
+        with open('State.npy', 'rb') as fp:
+            current = pickle.load(fp)
+        obj.append(current)
+        with open('State.npy', 'wb') as fp:
+            pickle.dump(obj, fp)
+
+
+        # ns.run([self.particle_list])
         # self.log.append(copy(self.particle_list))
         self.state_save()
 
@@ -274,12 +291,12 @@ class SPH_particle(object):
             self.x = self.x + (self.v * dt)
             self.v = self.v + (self.a * dt)
 
-            # if (self.x[1]<self.main_data.h):
-            #     print(self.a,' ',self.P,' ',self.rho)
-
         self.rho = self.rho + (self.D * dt)
         prefactor = self.rho / rho0
         self.P = (prefactor ** gamma - 1) * B
+
+        # if self.boundary == True:
+        #     self.rho = 1100
 
 
 def dw_dr(q, h):
