@@ -150,7 +150,7 @@ class SPH_main(object):
                     if part is not other_part:
                         r_ij = part.x - other_part.x
                         mag_r_ij = np.sqrt((r_ij[0] ** 2) + (r_ij[1] ** 2))
-                        if mag_r_ij < 2 * self.h and other_part.boundary == False:
+                        if mag_r_ij < 2 * self.h:# and other_part.boundary == False:
                             mj = other_part.m
                             q = mag_r_ij / self.h
                             dwdr = dw_dr(q, self.h)
@@ -168,12 +168,12 @@ class SPH_main(object):
                             part.a = part.a + (pre_fac * post_fac)
                             part.D = part.D + pre_fac * np.dot(v_ij, r_ij)
 
-                        elif mag_r_ij < self.k and other_part.boundary == True:
-
-                            pre_factor = (self.c0 ** 2) * (self.k ** (self.gamma - 1) / (self.gamma * self.k)) / mag_r_ij
-                            term_1 = (self.k / mag_r_ij) ** 2
-                            acc_mag = pre_factor * (term_1 * (term_1 - 1))
-                            part.a = part.a + (r_ij/mag_r_ij) * acc_mag
+                        # elif mag_r_ij < self.k and other_part.boundary == True:
+                        #
+                        #     pre_factor = (self.c0 ** 2) * (self.k ** (self.gamma - 1) / (self.gamma * self.k)) / mag_r_ij
+                        #     term_1 = (self.k / mag_r_ij) ** 2
+                        #     acc_mag = pre_factor * (term_1 * (term_1 - 1))
+                        #     part.a = part.a + (r_ij/mag_r_ij) * acc_mag
 
                             # if part.id == 200:
                             #     print("id:", part.id)
