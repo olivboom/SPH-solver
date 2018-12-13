@@ -12,6 +12,7 @@ from matplotlib import animation
 import pickle
 
 
+
 class SPH_main(object):
     """Primary SPH object"""
 
