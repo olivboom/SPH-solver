@@ -8,7 +8,7 @@ from copy import deepcopy as copy
 import time
 import matplotlib.pylab as plty
 from matplotlib import animation
-import numpy_save as ns
+# import numpy_save as ns
 import pickle
 
 
@@ -139,7 +139,6 @@ class SPH_main(object):
         and calculates the acceleration vector, density change and
         pressure at the new density
         """
-        # print(part.list_num)
         part.a = self.g
         part.D = 0.0
         for i in range(max(0, part.list_num[0] - 1),
@@ -211,18 +210,15 @@ class SPH_main(object):
             i += 1
             j += 1
 
-
-
             with open('State.npy', 'wb') as fp:
                 pickle.dump(self.particle_list, fp)
             with open('State.npy', 'rb') as fp:
                 current = pickle.load(fp)
             obj.append(current)
 
-            # self.log.append(copy(self.particle_list))
-            # if i == 5:
-            #     ns.run([self.particle_list])
-            #     i = 0
+            if i == 5:
+                ns.run([self.particle_list])
+                i = 0
 
             if j == 20:
                 print('Smoothing')
@@ -245,7 +241,6 @@ class SPH_main(object):
             t_out = time.time()
             t += self.dt
 
-
         with open('State.npy', 'wb') as fp:
             pickle.dump(self.particle_list, fp)
         with open('State.npy', 'rb') as fp:
@@ -254,10 +249,7 @@ class SPH_main(object):
         with open('State.npy', 'wb') as fp:
             pickle.dump(obj, fp)
 
-
-        # ns.run([self.particle_list])
-        # self.log.append(copy(self.particle_list))
-        self.state_save()
+        ns.run([self.particle_list])
 
     def state_save(self):
         np.save('State', self.log)
