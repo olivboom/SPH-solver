@@ -3,13 +3,11 @@
 from itertools import count
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
-from copy import deepcopy as copy
 import time
 import matplotlib.pylab as plty
 from matplotlib import animation
-import numpy_save as ns
 import pickle
+
 
 
 class SPH_main(object):
@@ -150,7 +148,7 @@ class SPH_main(object):
                     if part is not other_part:
                         r_ij = part.x - other_part.x
                         mag_r_ij = np.sqrt((r_ij[0] ** 2) + (r_ij[1] ** 2))
-                        if mag_r_ij < 2 * self.h and other_part.boundary == False:
+                        if mag_r_ij < 2 * self.h:# and other_part.boundary == False:
                             mj = other_part.m
                             q = mag_r_ij / self.h
                             dwdr = dw_dr(q, self.h)
@@ -168,12 +166,12 @@ class SPH_main(object):
                             part.a = part.a + (pre_fac * post_fac)
                             part.D = part.D + pre_fac * np.dot(v_ij, r_ij)
 
-                        elif mag_r_ij < self.k and other_part.boundary == True:
-
-                            pre_factor = (self.c0 ** 2) * (self.k ** (self.gamma - 1) / (self.gamma * self.k)) / mag_r_ij
-                            term_1 = (self.k / mag_r_ij) ** 2
-                            acc_mag = pre_factor * (term_1 * (term_1 - 1))
-                            part.a = part.a + (r_ij/mag_r_ij) * acc_mag
+                        # elif mag_r_ij < self.k and other_part.boundary == True:
+                        #
+                        #     pre_factor = (self.c0 ** 2) * (self.k ** (self.gamma - 1) / (self.gamma * self.k)) / mag_r_ij
+                        #     term_1 = (self.k / mag_r_ij) ** 2
+                        #     acc_mag = pre_factor * (term_1 * (term_1 - 1))
+                        #     part.a = part.a + (r_ij/mag_r_ij) * acc_mag
 
                             # if part.id == 200:
                             #     print("id:", part.id)
@@ -206,13 +204,20 @@ class SPH_main(object):
         t = 0
         i = 0
         j = 0
+        # print('Search Grid Resolution:', self.h * 2)
+        obj = []
         while t < self.t_max:
-            i += 1
-            j += 1
-            # self.log.append(copy(self.particle_list))
-            if i == 5:
-                ns.run([self.particle_list])
-                i = 0
+            i = i + 1
+            j = j + 1
+            with open('State.npy', 'wb') as fp:
+                pickle.dump(self.particle_list, fp)
+            with open('State.npy', 'rb') as fp:
+                current = pickle.load(fp)
+            obj.append(current)
+
+#            if i == 5:
+                #ns.run([self.particle_list])
+#                i = 0
 
             if j == 20:
                 print('Smoothing')
@@ -238,9 +243,16 @@ class SPH_main(object):
 
             t += self.dt
 
-        ns.run([self.particle_list])
-        # self.log.append(copy(self.particle_list))
-        self.state_save()
+        #ns.run([self.particle_list])
+        with open('State.npy', 'wb') as fp:
+            pickle.dump(self.particle_list, fp)
+        with open('State.npy', 'rb') as fp:
+            current = pickle.load(fp)
+        obj.append(current)
+        with open('State.npy', 'wb') as fp:
+            pickle.dump(obj, fp)
+        #self.log.append(copy(self.particle_list))
+        #self.state_save()
 
     def state_save(self):
         np.save('State', self.log)
