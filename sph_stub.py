@@ -27,6 +27,7 @@ class SPH_main(object):
         self.particle_list = []  # np.array([])
         self.search_grid = np.empty((0, 0), object)
         self.log = []
+        self.boundary_width = 0
 
 
     def set_values(self):
@@ -34,7 +35,7 @@ class SPH_main(object):
         # self.scale = 30
         self.min_x[:] = (0.0, 0.0)
         self.max_x[:] = (20.0, 10.0)
-        self.dx = 1 # 0.5 #0.02
+        self.dx = 0.25 #0.02
         self.h_fac = 2
         self.h = self.dx * self.h_fac
 
@@ -46,6 +47,7 @@ class SPH_main(object):
         self.gamma = 7
         self.dt = 0.1 * self.h / self.c0
         self.B = (self.rho0 * self.c0 ** 2) / self.gamma
+        self.boundary_width = 3
 
         self.t_cfl = 1
         self.t_f = 1
@@ -57,7 +59,7 @@ class SPH_main(object):
     def initialise_grid(self):
         """Initalise simulation grid."""
         """Calculates the size of the array required to store the search array"""
-        self.max_list = np.array((self.max_x - self.min_x) / (2.0 * self.h) + 1,
+        self.max_list = np.array((2 * self.boundary_width + self.max_x - self.min_x) / (2.0 * self.h) + 1,
                                  int)
 
         self.search_grid = np.empty(self.max_list, object)
@@ -66,11 +68,10 @@ class SPH_main(object):
     def place_points(self, xmin, xmax, geometry='default'):
         """Place points in a rectangle with a square spacing of size dx"""
 
-        x = np.array(xmin)
-        numx = int((xmax[0] - xmin[0]) / self.dx)
-        numy = int((xmax[1] - xmin[1]) / self.dx)
-        x_arr = np.linspace(0, 20, numx)
-        y_arr = np.linspace(0, 10, numy)
+        numx = int((xmax[0] - xmin[0]) / self.dx) - 1
+        numy = int((xmax[1] - xmin[1]) / self.dx) - 1
+        x_arr = np.linspace(xmin[0] + self.dx, xmax[0] - self.dx, numx)
+        y_arr = np.linspace(xmin[1] + self.dx, xmax[1] - self.dx, numy)
         initial = np.empty((numx, numy))
 
         if geometry == 'default':
@@ -84,9 +85,6 @@ class SPH_main(object):
             # Anticlockwise from left wall
             self.normal = [np.array([1, 0]), np.array([0, 1]), np.array([-1, 0]), np.array([0, -1])]
 
-
-            initial = np.pad(initial, (3, 3), mode='constant', constant_values=1)
-
         elif geometry == 'wave':
             for i, x in enumerate(x_arr):
                 for j, y in enumerate(y_arr):
@@ -96,7 +94,6 @@ class SPH_main(object):
                         initial[i, j] = 1
                     elif y < 7 and x > 17:
                         initial[i, j] = 1
-            initial = np.pad(initial, (3, 3), mode='constant', constant_values=1)
 
         elif geometry == 'wave_2':
             for i, x in enumerate(x_arr):
@@ -107,18 +104,19 @@ class SPH_main(object):
                         initial[i, j] = 1
                     elif y < 4 and x > 16:
                         initial[i, j] = 1
-            initial = np.pad(initial, (3, 3), mode='constant', constant_values=1)
 
+        initial = np.pad(initial, (self.boundary_width,
+                                   self.boundary_width), mode='constant', constant_values=1)
 
-        x_arr = np.linspace(xmin[0], xmax[0], numx + 6)
-        y_arr = np.linspace(xmin[1], xmax[1], numy + 6)
+        x_arr = np.linspace(xmin[0] - (self.boundary_width - 1) * self.dx,
+                            xmax[0] - (self.boundary_width - 1) * self.dx, numx + 6)
+
+        y_arr = np.linspace(xmin[1] - (self.boundary_width - 1) * self.dx,
+                            xmax[1] - (self.boundary_width - 1) * self.dx, numy + 6)
 
         for i, x in enumerate(x_arr):
             for j, y in enumerate(y_arr):
-                # TEMPORARY
-                prefactor = (1000 / self.rho0) ** self.gamma
-                P = (prefactor - 1) * self.B
-                particle = SPH_particle(self, np.array([x, y]), m=self.dx ** 2 * self.rho0, P=P)
+                particle = SPH_particle(self, np.array([x, y]), m=self.dx ** 2 * self.rho0, P=0)
                 particle.calc_index()
                 if initial[i, j] == 2:
                     self.particle_list.append(particle)
@@ -215,7 +213,7 @@ class SPH_main(object):
                 # print('q:', q)
                 q = perp_dist / d0
                 if q < 1:
-                    print(q)
+                    # print(q)
                     if q < 0.01:
                         q = 0.01
 
@@ -231,10 +229,7 @@ class SPH_main(object):
                     # print('Original acceleration', part.a)
                     # print('Additional Acceleration', acc_factor)
 
-
                     part.a = part.a + acc_factor
-
-
 
 
     def density_smoothing(self, part):
@@ -273,10 +268,10 @@ class SPH_main(object):
             obj.append(current)
 
 
-            if i == 2:
-                print('dt:', self.dt)
-                ns.run([self.particle_list])
-                i = 0
+            # if i == 2:
+            #     print('dt:', self.dt)
+            #     ns.run([self.particle_list])
+            #     i = 0
 
 
             if j == 20:
@@ -298,10 +293,10 @@ class SPH_main(object):
             t_out_1 = time.time()
 
             for particle in self.particle_list:
-                particle.update_values(self.B, self.rho0, self.gamma, self.dt)
+                particle.update_values(self.B, self.rho0, self.gamma, self.dt, self.min_x, self.max_x)
 
             # print('Neighbour Loop', (t_out_1 - t_in_1))
-
+            print('Time:', t)
             t += self.dt
 
 
@@ -313,7 +308,7 @@ class SPH_main(object):
         with open('State.npy', 'wb') as fp:
             pickle.dump(obj, fp)
 
-        ns.run([self.particle_list])
+        # ns.run([self.particle_list])
 
 
 class SPH_particle(object):
@@ -339,17 +334,35 @@ class SPH_particle(object):
         self.list_num = np.array((self.x - self.main_data.min_x) /
                                  (2.0 * self.main_data.h), int)
 
-
-    def update_values(self, B, rho0, gamma, dt):
+    def update_values(self, B, rho0, gamma, dt, min_x, max_x):
         """Updates the state of the particle for one time step forwards"""
+
         if self.boundary == False:
-            self.x = self.x + (self.v * dt)
-            self.v = self.v + (self.a * dt)
+            new_x = self.x + (self.v * dt)
+            if new_x[0] < min_x[0] or new_x[0] > max_x[0]:
+                self.v = [-0.5, 1] * self.v
+                new_x = self.x + (self.v * dt)
+            elif new_x[1] < min_x[1] or new_x[1] > max_x[1]:
+                self.v = [1, -0.5] * self.v
+                new_x = self.x + (self.v * dt)
+            else:
+                self.v = self.v + (self.a * dt)
+            self.x = new_x
 
         self.rho = self.rho + (self.D * dt)
         prefactor = self.rho / rho0
         self.P = (prefactor ** gamma - 1) * B
 
+
+    # def update_values(self, B, rho0, gamma, dt):
+    #     """Updates the state of the particle for one time step forwards"""
+    #     if self.boundary == False:
+    #         self.x = self.x + (self.v * dt)
+    #         self.v = self.v + (self.a * dt)
+    #
+    #     self.rho = self.rho + (self.D * dt)
+    #     prefactor = self.rho / rho0
+    #     self.P = (prefactor ** gamma - 1) * B
 
 
 def dw_dr(q, h):
