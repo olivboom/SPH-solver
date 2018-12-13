@@ -18,6 +18,7 @@ def read_file_plot(filename, option=None, time=-1, image=False):
                    If option = 3: reads x and y coordinates and pressure
                    If option = 4: reads x and y coordinates and density (rho)
     Returns: scatterplot of xcoordinate and ycoordinate and'''
+    
     solutions = np.load(filename)
 
     xhist = []
