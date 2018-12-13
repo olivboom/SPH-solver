@@ -6,6 +6,7 @@ import numpy as np
 import time
 import matplotlib.pylab as plty
 from matplotlib import animation
+# import numpy_save as ns
 import pickle
 
 
@@ -36,7 +37,6 @@ class SPH_main(object):
         self.dx = 0.5 #0.02
         self.h_fac = 2
         self.h = self.dx * self.h_fac
-        self.k = 0.8
 
         # Added quantities
         self.mu = 0.001
@@ -137,9 +137,10 @@ class SPH_main(object):
         and calculates the acceleration vector, density change and
         pressure at the new density
         """
-        # print(part.list_num)
         part.a = self.g
         part.D = 0.0
+
+        can_see_wall = False
         for i in range(max(0, part.list_num[0] - 1),
                        min(part.list_num[0] + 2, self.max_list[0])):
             for j in range(max(0, part.list_num[1] - 1),
@@ -148,7 +149,7 @@ class SPH_main(object):
                     if part is not other_part:
                         r_ij = part.x - other_part.x
                         mag_r_ij = np.sqrt((r_ij[0] ** 2) + (r_ij[1] ** 2))
-                        if mag_r_ij < 2 * self.h:# and other_part.boundary == False:
+                        if mag_r_ij < 2 * self.h:
                             mj = other_part.m
                             q = mag_r_ij / self.h
                             dwdr = dw_dr(q, self.h)
@@ -166,8 +167,8 @@ class SPH_main(object):
                             part.a = part.a + (pre_fac * post_fac)
                             part.D = part.D + pre_fac * np.dot(v_ij, r_ij)
 
-                        # elif mag_r_ij < self.k and other_part.boundary == True:
-                        #
+                        # if mag_r_ij < 2 * self.h and other_part.boundary == True and part.boundary == False:
+                        #     Can_see=True
                         #     pre_factor = (self.c0 ** 2) * (self.k ** (self.gamma - 1) / (self.gamma * self.k)) / mag_r_ij
                         #     term_1 = (self.k / mag_r_ij) ** 2
                         #     acc_mag = pre_factor * (term_1 * (term_1 - 1))
@@ -179,7 +180,10 @@ class SPH_main(object):
                             #     print('Velocity:', part.v)
                             #     print('Boundary:', part.boundary)
                             #     print('Acceleration', part.a)
-                            #     print('Density change', part.D)
+
+
+        # if can_see_wall:
+    #     add part to potential near wall list
 
 
     def density_smoothing(self, part):
@@ -204,20 +208,23 @@ class SPH_main(object):
         t = 0
         i = 0
         j = 0
-        # print('Search Grid Resolution:', self.h * 2)
+
         obj = []
         while t < self.t_max:
             i = i + 1
             j = j + 1
+
             with open('State.npy', 'wb') as fp:
                 pickle.dump(self.particle_list, fp)
             with open('State.npy', 'rb') as fp:
                 current = pickle.load(fp)
             obj.append(current)
 
+
 #            if i == 5:
                 #ns.run([self.particle_list])
 #                i = 0
+
 
             if j == 20:
                 print('Smoothing')
@@ -236,14 +243,11 @@ class SPH_main(object):
             t_in = time.time()
             for particle in self.particle_list:
                 particle.update_values(self.B, self.rho0, self.gamma, self.dt)
-                # if particle.boundary is True:
-                #     print('Boundary Coordinates: ', particle.x)
 
             t_out = time.time()
-
             t += self.dt
 
-        #ns.run([self.particle_list])
+
         with open('State.npy', 'wb') as fp:
             pickle.dump(self.particle_list, fp)
         with open('State.npy', 'rb') as fp:
@@ -251,11 +255,9 @@ class SPH_main(object):
         obj.append(current)
         with open('State.npy', 'wb') as fp:
             pickle.dump(obj, fp)
-        #self.log.append(copy(self.particle_list))
-        #self.state_save()
 
-    def state_save(self):
-        np.save('State', self.log)
+        # ns.run([self.particle_list])
+
 
 
 class SPH_particle(object):
@@ -286,12 +288,12 @@ class SPH_particle(object):
             self.x = self.x + (self.v * dt)
             self.v = self.v + (self.a * dt)
 
-            # if (self.x[1]<self.main_data.h):
-            #     print(self.a,' ',self.P,' ',self.rho)
-
         self.rho = self.rho + (self.D * dt)
         prefactor = self.rho / rho0
         self.P = (prefactor ** gamma - 1) * B
+
+        # if self.boundary == True:
+        #     self.rho = 1100
 
 
 def dw_dr(q, h):
