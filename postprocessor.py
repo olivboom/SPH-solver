@@ -5,7 +5,7 @@ from sph_stub import SPH_main
 from sph_stub import SPH_particle
 
 
-def read_file_plot(filename, option = None, time=-1):
+def read_file_plot(filename, option=None, time=-1, image=False):
     '''Reads the output file from the numerical simulator. The x and y values
     (coordinates) of the particles from the simulator are stored inside two
     lists.
@@ -20,14 +20,26 @@ def read_file_plot(filename, option = None, time=-1):
     Returns: scatterplot of xcoordinate and ycoordinate and'''
     
     solutions = np.load(filename)
+
     xhist = []
     yhist = []
     vxhist = []
     vyhist = []
     Preshist = []
     rhohist = []
-    
-    for i in range(solutions.shape[0]):
+
+    vxmin = 0
+    vxmax = 0
+    vymin = 0
+    vymax = 0
+    Presmin = 0
+    Presmax = 0
+    rhomin = 0
+    rhomax = 0
+
+    print(len(solutions))
+
+    for i in range(len(solutions)):
         xcoord = []
         ycoord = []
         v_x = []
@@ -40,10 +52,21 @@ def read_file_plot(filename, option = None, time=-1):
         for i in range(len(current)):
             xcoord.append(current[i].x[0])
             ycoord.append(current[i].x[1])
+
             v_x.append(current[i].v[0])
             v_y.append(current[i].v[1])
+            vxmin = np.amin([vxmin, current[i].v[0]])
+            vxmax = np.amax([vxmax, current[i].v[0]])
+            vymin = np.amin([vymin, current[i].v[0]])
+            vymax = np.amax([vymax, current[i].v[0]])
+
             Pres.append(current[i].P)
+            Presmin = np.amin([Presmin, current[i].P])
+            Presmax = np.amax([Presmax, current[i].P])
+
             rho.append(current[i].rho)
+            rhomin = np.amin([rhomin, current[i].rho])
+            rhomax = np.amax([rhomin, current[i].rho])
 
         xhist.append(xcoord)
         yhist.append(ycoord)
@@ -53,69 +76,188 @@ def read_file_plot(filename, option = None, time=-1):
         rhohist.append(rho)
 
     if option == 1:
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8))
-        im1 = ax1.scatter(xhist[0], yhist[0], c=vyhist[0], vmin=-500, vmax=0)
-        im2 = ax2.scatter(xhist[-1], yhist[-1], c=vyhist[-1], vmin=-500, vmax=0)
-        plt.colorbar(im1, ax = ax1)
-        plt.colorbar(im2, ax = ax2)
-        ax1.set_xlim(-0.1, 1.1)
-        ax1.set_ylim(-0.1, 1.1)
-        ax2.set_xlim(-0.1, 1.1)
-        ax2.set_ylim(-0.1, 1.1)
-    if option == 2:
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8))
-        ax1.scatter(xhist[0], yhist[0], c=vyhist[0])
-        ax2.scatter(xhist[-1], yhist[-1], c=vyhist[-1])
-        plt.colorbar()
-        plt.xlim(-0.1, 1.1)
-        plt.ylim(-0.1, 1.1)
-        plt.clim(-100000 * 0.006, 0)
-    if option == 3:
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8))
-        ax1.scatter(xhist[0], yhist[0], c=Preshist[0])
-        ax2.scatter(xhist[-1], yhist[-1], c=vyhist[-1])
-        plt.colorbar()
-        plt.xlim(-0.1, 1.1)
-        plt.ylim(-0.1, 1.1)
-        plt.clim(-0.006, 0)
-    if option == 4:
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8))
-        ax1.scatter(xhist[0], yhist[0], c=rhohist[0])
-        ax2.scatter(xhist[-1], yhist[-1], c=vyhist[-1])
-        plt.colorbar()
-        plt.xlim(-0.1, 1.1)
-        plt.ylim(-0.1, 1.1)
-        plt.clim(-0.006, 0)
-    if option is None:
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(8, 16))
-        im1 = ax1.scatter(xhist[-1], yhist[-1], c=vxhist[-1])
-        im2 = ax2.scatter(xhist[-1], yhist[-1], c=vyhist[-1])
-        im3 = ax3.scatter(xhist[-1], yhist[-1], c=Preshist[-1])
-        im4 = ax4.scatter(xhist[-1], yhist[-1], c=rhohist[-1])
-        fig.colorbar(im1, ax = ax1)
-        fig.colorbar(im2, ax = ax2)
-        fig.colorbar(im3, ax = ax3)
-        fig.colorbar(im4, ax = ax4)
-        plt.show()
-    
-    fig = plt.figure(figsize=(8,8))
-    ax1 = plt.subplot(111)
-    scat = ax1.scatter([], [], c=[])
-    
-    def data_gen(i, xhist, yhist, vyhist, scat):
-        # make sure initial condition is in plot
-        scat = ax1.scatter(xhist[i], yhist[i], c=vyhist[i])
-        return scat,
-    
-    anim = animation.FuncAnimation(fig, data_gen, frames=np.arange(0, solutions.shape[0]),
-                                   fargs=(xhist, yhist, vyhist, scat), interval=100, blit=True, repeat=False)
-    
-    return anim
+        fig1, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8))
+        im1 = ax1.scatter(xhist[0], yhist[0], s=10, c=vxhist[0],
+                          cmap='coolwarm', vmin=vxmin, vmax=vxmax)
+        im2 = ax2.scatter(xhist[-1], yhist[-1], s=10, c=vxhist[-1],
+                          cmap='coolwarm', vmin=vxmin, vmax=vxmax)
+#        plt.colorbar(im1, ax=ax1)
+#        plt.colorbar(im2, ax=ax2)
+        ax1.set_xlim(-5, 25)
+        ax1.set_ylim(-5, 15)
+        ax2.set_xlim(-5, 25)
+        ax2.set_ylim(-5, 15)
+
+        if image is True:
+            for i in range(len(solutions)):
+                fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+                im = ax.scatter(xhist[i], yhist[i], s=10, c=vxhist[i],
+                                cmap='coolwarm', vmin=vxmin, vmax=vxmax)
+#                plt.colorbar(im, ax=ax)
+                ax.set_xlim(-5, 25)
+                ax.set_ylim(-5, 17)
+                plt.savefig('.\plot_images\image{}.png'.format(i))
+                plt.close()
+
+        fig3 = plt.figure(figsize=(8, 8))
+        scat = ax1.scatter([], [], s=10, c=[], cmap='coolwarm',
+                           vmin=vxmin, vmax=vxmax)
+        ax1.set_xlim(-5, 25)
+        ax1.set_ylim(-5, 15)
+        ax1 = plt.subplot(111)
+
+        def animate(i, xhist, yhist, vxhist, scat):
+            # make sure initial condition is in plot
+            scat = ax1.scatter(xhist[i], yhist[i], s=10, c=vxhist[i],
+                               cmap='coolwarm', vmin=vxmin, vmax=vxmax)
+            ax1.set_xlim(-5, 25)
+            ax1.set_ylim(-5, 15)
+            return scat,
+
+        anim = animation.FuncAnimation(fig3, animate,
+                                       frames=np.arange(0, len(solutions)),
+                                       fargs=(xhist, yhist, vxhist, scat),
+                                       interval=1, blit=True, repeat=True)
+
+        return anim
+
+    elif option == 2:
+        fig1, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8))
+        im1 = ax1.scatter(xhist[0], yhist[0], s=10, c=vxhist[0],
+                          cmap='coolwarm', vmin=vxmin, vmax=vxmax)
+        im2 = ax2.scatter(xhist[-1], yhist[-1], s=10, c=vxhist[-1],
+                          cmap='coolwarm', vmin=vxmin, vmax=vxmax)
+#        plt.colorbar(im1, ax=ax1)
+#        plt.colorbar(im2, ax=ax2)
+        ax1.set_xlim(-5, 25)
+        ax1.set_ylim(-5, 15)
+        ax2.set_xlim(-5, 25)
+        ax2.set_ylim(-5, 15)
+
+        if image is True:
+            for i in range(len(solutions)):
+                fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+                im = ax.scatter(xhist[i], yhist[i], s=10, c=vxhist[i],
+                                cmap='coolwarm', vmin=vxmin, vmax=vxmax)
+#                plt.colorbar(im, ax=ax)
+                ax.set_xlim(-5, 25)
+                ax.set_ylim(-5, 17)
+                plt.savefig('.\plot_images\image{}.png'.format(i))
+                plt.close()
+
+        fig3 = plt.figure(figsize=(8, 8))
+        scat = ax1.scatter([], [],s=10, c=[], cmap='coolwarm', 
+                           vmin=vxmin, vmax=vxmax)
+        ax1.set_xlim(-5, 25)
+        ax1.set_ylim(-5, 15)
+        ax1 = plt.subplot(111)
+
+        def animate(i, xhist, yhist, vxhist, scat):
+            # make sure initial condition is in plot
+            scat = ax1.scatter(xhist[i], yhist[i], s=10, c=vxhist[i],
+                               cmap='coolwarm', vmin=vxmin, vmax=vxmax)
+            ax1.set_xlim(-5, 25)
+            ax1.set_ylim(-5, 15)
+            return scat,
+
+        anim = animation.FuncAnimation(fig3, animate,
+                                       frames=np.arange(0, len(solutions)),
+                                       fargs=(xhist, yhist, vxhist, scat),
+                                       interval=1, blit=True, repeat=True)
+
+        return anim
+
+    elif option == 3:
+        fig1, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8))
+        im1 = ax1.scatter(xhist[0], yhist[0], s=10, c=vxhist[0],
+                          cmap='coolwarm', vmin=vxmin, vmax=vxmax)
+        im2 = ax2.scatter(xhist[-1], yhist[-1], s=10, c=vxhist[-1],
+                          cmap='coolwarm', vmin=vxmin, vmax=vxmax)
+#        plt.colorbar(im1, ax=ax1)
+#        plt.colorbar(im2, ax=ax2)
+        ax1.set_xlim(-5, 25)
+        ax1.set_ylim(-5, 15)
+        ax2.set_xlim(-5, 25)
+        ax2.set_ylim(-5, 15)
+
+        if image is True:
+            for i in range(len(solutions)):
+                fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+                im = ax.scatter(xhist[i], yhist[i], s=10, c=vxhist[i],
+                                cmap='coolwarm', vmin=vxmin, vmax=vxmax)
+#                plt.colorbar(im, ax=ax)
+                ax.set_xlim(-5, 25)
+                ax.set_ylim(-5, 17)
+                plt.savefig('.\plot_images\image{}.png'.format(i))
+                plt.close()
+
+        fig3 = plt.figure(figsize=(8, 8))
+        scat = ax1.scatter([], [],s=10, c=[], cmap='coolwarm', 
+                           vmin=vxmin, vmax=vxmax)
+        ax1.set_xlim(-5, 25)
+        ax1.set_ylim(-5, 15)
+        ax1 = plt.subplot(111)
+
+        def animate(i, xhist, yhist, vxhist, scat):
+            # make sure initial condition is in plot
+            scat = ax1.scatter(xhist[i], yhist[i], s=10, c=vxhist[i],
+                               cmap='coolwarm', vmin=vxmin, vmax=vxmax)
+            ax1.set_xlim(-5, 25)
+            ax1.set_ylim(-5, 15)
+            return scat,
+
+        anim = animation.FuncAnimation(fig3, animate,
+                                       frames=np.arange(0, len(solutions)),
+                                       fargs=(xhist, yhist, vxhist, scat),
+                                       interval=1, blit=True, repeat=True)
+
+        return anim
+
+    elif option == 4:
+        fig1, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8))
+        im1 = ax1.scatter(xhist[0], yhist[0], s=10, c=vxhist[0],
+                          cmap='coolwarm', vmin=vxmin, vmax=vxmax)
+        im2 = ax2.scatter(xhist[-1], yhist[-1], s=10, c=vxhist[-1],
+                          cmap='coolwarm', vmin=vxmin, vmax=vxmax)
+#        plt.colorbar(im1, ax=ax1)
+#        plt.colorbar(im2, ax=ax2)
+        ax1.set_xlim(-5, 25)
+        ax1.set_ylim(-5, 15)
+        ax2.set_xlim(-5, 25)
+        ax2.set_ylim(-5, 15)
+
+        if image is True:
+            for i in range(len(solutions)):
+                fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+                im = ax.scatter(xhist[i], yhist[i], s=10, c=vxhist[i],
+                                cmap='coolwarm', vmin=vxmin, vmax=vxmax)
+#                plt.colorbar(im, ax=ax)
+                ax.set_xlim(-5, 25)
+                ax.set_ylim(-5, 17)
+                plt.savefig('.\plot_images\image{}.png'.format(i))
+                plt.close()
+
+        fig3 = plt.figure(figsize=(8, 8))
+        scat = ax1.scatter([], [],s=10, c=[], cmap='coolwarm', 
+                           vmin=vxmin, vmax=vxmax)
+        ax1.set_xlim(-5, 25)
+        ax1.set_ylim(-5, 15)
+        ax1 = plt.subplot(111)
+
+        def animate(i, xhist, yhist, vxhist, scat):
+            # make sure initial condition is in plot
+            scat = ax1.scatter(xhist[i], yhist[i], s=10, c=vxhist[i],
+                               cmap='coolwarm', vmin=vxmin, vmax=vxmax)
+            ax1.set_xlim(-5, 25)
+            ax1.set_ylim(-5, 15)
+            return scat,
+
+        anim = animation.FuncAnimation(fig3, animate,
+                                       frames=np.arange(0, len(solutions)),
+                                       fargs=(xhist, yhist, vxhist, scat),
+                                       interval=1, blit=True, repeat=True)
+
+        return anim
+
 
 solutions = read_file_plot('State.npy', 1, time=-1)
-
-#def main():
-    
-
-#if __name__ == '__main__':
-    #main()
