@@ -65,7 +65,6 @@ def read_file_plot(filename, option=None, image=False):
 
         for i in range(len(current)):
             if current[i].boundary is True:
-                print('yes')
                 boundx.append(current[i].x[0])
                 boundy.append(current[i].x[1])
                 boundxv.append(current[i].v[0])
@@ -74,7 +73,6 @@ def read_file_plot(filename, option=None, image=False):
                 boundrho.append(current[i].rho)
                
             else:
-                print('no')
                 xcoord.append(current[i].x[0])
                 ycoord.append(current[i].x[1])
                 v_x.append(current[i].v[0])
@@ -160,7 +158,7 @@ def read_file_plot(filename, option=None, image=False):
                                        fargs=(xhist, yhist, xboundhist,
                                               yboundhist, vxhist, 
                                               vxboundhist, scat),
-                                       interval=1, blit=True, repeat=True)
+                                       interval=60, blit=True, repeat=True)
 
         return anim
 
@@ -219,7 +217,7 @@ def read_file_plot(filename, option=None, image=False):
                                        fargs=(xhist, yhist, xboundhist,
                                               yboundhist, vyhist, 
                                               vyboundhist, scat),
-                                       interval=1, blit=True, repeat=True)
+                                       interval=60, blit=True, repeat=True)
 
         return anim
 
@@ -278,7 +276,7 @@ def read_file_plot(filename, option=None, image=False):
                                        fargs=(xhist, yhist, xboundhist,
                                               yboundhist, Preshist, 
                                               Presboundhist, scat),
-                                       interval=1, blit=True, repeat=True)
+                                       interval=60, blit=True, repeat=True)
 
         return anim
 
@@ -337,10 +335,10 @@ def read_file_plot(filename, option=None, image=False):
                                        fargs=(xhist, yhist, xboundhist,
                                               yboundhist, rhohist, 
                                               rhoboundhist, scat),
-                                       interval=1, blit=True, repeat=True)
+                                       interval=60, blit=True, repeat=True)
 
         return anim
 
 
-solutions = read_file_plot('State.npy', 1)
+solutions = read_file_plot('Bigdaddy.npy', 1)
 
