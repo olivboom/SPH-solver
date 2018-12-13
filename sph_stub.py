@@ -35,7 +35,7 @@ class SPH_main(object):
         # self.scale = 30
         self.min_x[:] = (0.0, 0.0)
         self.max_x[:] = (20.0, 10.0)
-        self.dx = 0.25 #0.02
+        self.dx = 0.4 #0.02
         self.h_fac = 2
         self.h = self.dx * self.h_fac
 
@@ -52,9 +52,9 @@ class SPH_main(object):
         self.t_cfl = 1
         self.t_f = 1
         self.t_A= 1
-        self.dt_default = 1
+        self.dt_default = 0.1 * self.h / self.c0
 
-        self.t_max = 200 * self.dt
+        # self.t_max = 400 * self.dt
 
     def initialise_grid(self):
         """Initalise simulation grid."""
@@ -65,7 +65,7 @@ class SPH_main(object):
         self.search_grid = np.empty(self.max_list, object)
 
 
-    def place_points(self, xmin, xmax, geometry='default'):
+    def place_points(self, xmin, xmax, geometry='wave_2'):
         """Place points in a rectangle with a square spacing of size dx"""
 
         numx = int((xmax[0] - xmin[0]) / self.dx) - 1
@@ -135,7 +135,7 @@ class SPH_main(object):
             self.search_grid[cnt.list_num[0], cnt.list_num[1]].append(cnt)
 
 
-    def neighbour_iterate(self, part):
+    def neighbour_iterate(self, part, wall_forcing='Leonard_Jones'):
         """Find all the particles within 2h of the specified particle
         and calculates the acceleration vector, density change and
         pressure at the new density
@@ -196,40 +196,76 @@ class SPH_main(object):
         # self.min_x # bottom left
         # self.max_x # top left
 
-        if part.can_see_wall is True:
-            # print('Particle location: ', part.x)
-            for count, wall_normal in enumerate(self.normal):
-                if count < 2:
-                    # Check sign on this
-                    dist = part.x - self.min_x
-                    perp_dist = np.dot(dist, wall_normal)
-                    # print('distance:', perp_dist)
-                else:
-                    dist = part.x - self.max_x
-                    perp_dist = np.dot(dist, wall_normal)
-                    # print('distance:', perp_dist)
+        if wall_forcing == 'Leonard_Jones':
 
-                d0 = 0.9 * self.dx
-                # print('q:', q)
-                q = perp_dist / d0
-                if q < 1:
-                    # print(q)
-                    if q < 0.01:
-                        q = 0.01
+            if part.can_see_wall is True:
+                # print('Particle location: ', part.x)
+                for count, wall_normal in enumerate(self.normal):
+                    if count < 2:
+                        # Check sign on this
+                        dist = part.x - self.min_x
+                        perp_dist = np.dot(dist, wall_normal)
+                        # print('distance:', perp_dist)
+                    else:
+                        dist = part.x - self.max_x
+                        perp_dist = np.dot(dist, wall_normal)
+                        # print('distance:', perp_dist)
 
-                    fact = 1 / q
+                    d0 = 0.9 * self.dx
+                    # print('q:', q)
+                    q = perp_dist / d0
+                    if q < 1:
+                        if q < 0.1:
+                            q = 0.1
 
-                    P_ref = (self.rho0 * self.c0 ** 2 / self.gamma) * ((1.05 ** 2) - 1)
-                    factor = (fact ** 4 - fact ** 2) / perp_dist
-                    acc_factor = wall_normal * factor * (P_ref / part.rho)
+                        fact = 1 / q
 
-                    # print('Investigate', factor)
-                    # print('Wall Normal :', wall_normal)
+                        P_ref = (self.rho0 * self.c0 ** 2 / self.gamma) * ((1.05 ** 2) - 1)
+                        factor = (fact ** 4 - fact ** 2) / perp_dist
+                        acc_factor = wall_normal * factor * (P_ref / part.rho)
+
+                        # print('Investigate', factor)
+                        # print('Wall Normal :', wall_normal)
+                        # print('Particle location: ', part.x)
+                        # print('Original acceleration', part.a)
+                        # print('Additional Acceleration', acc_factor)
+
+                        part.a = part.a + acc_factor
+
+        if wall_forcing == 'Fudge':
+            if wall_forcing == 'Leonard_Jones':
+
+                if part.can_see_wall is True:
                     # print('Particle location: ', part.x)
-                    # print('Original acceleration', part.a)
-                    # print('Additional Acceleration', acc_factor)
+                    for count, wall_normal in enumerate(self.normal):
+                        if count < 2:
+                            dist = part.x - self.min_x
+                            perp_dist = np.dot(dist, wall_normal)
+                        else:
+                            dist = part.x - self.max_x
+                            perp_dist = np.dot(dist, wall_normal)
+                            # print('distance:', perp_dist)
 
-                    part.a = part.a + acc_factor
+                        d0 = 0.9 * self.dx
+                        # print('q:', q)
+                        q = perp_dist / d0
+                        if q < 1:
+                            if q < 0.1:
+                                q = 0.1
+
+                            fact = 1 / q
+
+                            P_ref = (self.rho0 * self.c0 ** 2 / self.gamma) * ((1.05 ** 2) - 1)
+                            factor = (fact ** 4 - fact ** 2) / perp_dist
+                            acc_factor = wall_normal * self.a
+
+                            # print('Investigate', factor)
+                            # print('Wall Normal :', wall_normal)
+                            # print('Particle location: ', part.x)
+                            # print('Original acceleration', part.a)
+                            # print('Additional Acceleration', acc_factor)
+
+                            part.a = part.a + acc_factor
 
 
     def density_smoothing(self, part):
@@ -255,24 +291,24 @@ class SPH_main(object):
         i = 0
         j = 0
         obj = []
-
-        while t < self.t_max:
+        t_tracker = 0.05
+        while t < 30:
+            t_tracker = t_tracker + self.dt
+            if t_tracker > 0.05:
+                with open('State.npy', 'wb') as fp:
+                    pickle.dump(self.particle_list, fp)
+                with open('State.npy', 'rb') as fp:
+                    current = pickle.load(fp)
+                obj.append(current)
+                t_tracker = 0
 
             i = i + 1
             j = j + 1
 
-            with open('State.npy', 'wb') as fp:
-                pickle.dump(self.particle_list, fp)
-            with open('State.npy', 'rb') as fp:
-                current = pickle.load(fp)
-            obj.append(current)
-
-
-            # if i == 2:
-            #     print('dt:', self.dt)
-            #     ns.run([self.particle_list])
-            #     i = 0
-
+            if i == 10:
+                print('dt:', self.dt)
+                ns.run([self.particle_list])
+                i = 0
 
             if j == 20:
                 print('Smoothing')
@@ -287,18 +323,19 @@ class SPH_main(object):
 
             # The 0.1 can be in the range of 0.1-0.3
             self.dt = 0.3 * min(self.t_cfl, self.t_f, self.t_A)
+            if self.dt < self.dt_default:
+                self.dt = self.dt_default
             # print(self.dt)
-
 
             t_out_1 = time.time()
 
             for particle in self.particle_list:
                 particle.update_values(self.B, self.rho0, self.gamma, self.dt, self.min_x, self.max_x)
 
-            # print('Neighbour Loop', (t_out_1 - t_in_1))
+            print('Neighbour Loop', (t_out_1 - t_in_1))
             print('Time:', t)
+            # print('Change in time:', self.dt)
             t += self.dt
-
 
         with open('State.npy', 'wb') as fp:
             pickle.dump(self.particle_list, fp)
@@ -340,10 +377,10 @@ class SPH_particle(object):
         if self.boundary == False:
             new_x = self.x + (self.v * dt)
             if new_x[0] < min_x[0] or new_x[0] > max_x[0]:
-                self.v = [-0.5, 1] * self.v
+                self.v = [-1, 1] * self.v
                 new_x = self.x + (self.v * dt)
             elif new_x[1] < min_x[1] or new_x[1] > max_x[1]:
-                self.v = [1, -0.5] * self.v
+                self.v = [1, -1] * self.v
                 new_x = self.x + (self.v * dt)
             else:
                 self.v = self.v + (self.a * dt)
@@ -375,6 +412,8 @@ def dw_dr(q, h):
     The gradient of the scaling factor associated with the smoothing kernel
     """
     if q < 1:
+        # if q < 0.01:
+        #     q = 0.01
         value = 10 / (7 * np.pi * h ** 3) * (-3 * q + 2.25 * q ** 2)
     else:
         value = -10 / (7 * np.pi * h ** 3) * 0.75 * (2 - q) ** 2
@@ -391,6 +430,8 @@ def w(q, h):
     The scaling factor associated with the smoothing kernel
     """
     if q <= 1 and q >= 0:
+        # if q < 0.01:
+        #     q = 0.01
         value = 10 / (7 * np.pi * h ** 2) * (1 - 1.5 * q ** 2 + 0.75 * q ** 3)
     elif q >= 1 and q <= 2:
         value = 10 / (7 * np.pi * h ** 2) * 0.25 * (2 - q) ** 3
