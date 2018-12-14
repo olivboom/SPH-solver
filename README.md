@@ -1,4 +1,4 @@
-# Team Atlantic - A Smoothed Particle Hydrodynamics Solver
+﻿# Team Atlantic - A Smoothed Particle Hydrodynamics Solver
 
 
 
@@ -16,9 +16,13 @@ The key outputs from the simulation program are:
 
 # Preview
 
-![](https://raw.github.com/meolu/walle-web/master/screenshot/projects.png)
+Initial simulation visualisation:
 
-...................need a figure to replace it
+![](https://github.com/msc-acse/acse-4-project-2-atlantic/blob/master/before.png)
+
+Simulation after 200 time steps:
+
+![](https://github.com/msc-acse/acse-4-project-2-atlantic/blob/master/after.png)
 
 # Installation
 
