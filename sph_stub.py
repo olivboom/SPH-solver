@@ -54,7 +54,7 @@ class SPH_main(object):
         self.t_A= 1
         self.dt_default = 0.1 * self.h / self.c0
 
-        # self.t_max = 400 * self.dt
+        self.t_max = 30
 
     def initialise_grid(self):
         """Initalise simulation grid."""
@@ -199,12 +199,11 @@ class SPH_main(object):
                         perp_dist = np.dot(dist, wall_normal)
                         # print('distance:', perp_dist)
                     else:
-                        if part.x[0] > 15 and part.x[1] > 1:
-                            dist = part.x - self.max_x
-                            perp_dist = np.dot(dist, wall_normal)
-                            # print('Location:', part.x)
-                            # print('Distance', dist)
-                            # print('Perp Dist', perp_dist)
+                        dist = part.x - self.max_x
+                        perp_dist = np.dot(dist, wall_normal)
+                        # print('Location:', part.x)
+                        # print('Distance', dist)
+                        # print('Perp Dist', perp_dist)
 
                     d0 = 0.9 * self.dx
                     # print('q:', q)
@@ -277,7 +276,7 @@ class SPH_main(object):
         j = 0
         obj = []
         t_tracker = 0.05
-        while t < 30:
+        while t < self.t_max:
             t_tracker = t_tracker + self.dt
             if t_tracker > 0.05:
                 with open('State.npy', 'wb') as fp:
@@ -315,8 +314,8 @@ class SPH_main(object):
             for particle in self.particle_list:
                 particle.update_values(self.B, self.rho0, self.gamma, self.dt, self.min_x, self.max_x)
 
-            print('Neighbour Loop', (t_out_1 - t_in_1))
-            print('Time:', t)
+            # print('Neighbour Loop', (t_out_1 - t_in_1))
+            # print('Time:', t)
             # print('Change in time:', self.dt)
             t += self.dt
 
@@ -357,7 +356,7 @@ class SPH_particle(object):
 
     def update_values(self, B, rho0, gamma, dt, min_x, max_x, bounce=1):
         """Updates the state of the particle for one time step forwards"""
-        if self.boundary == False:
+        if not self.boundary:
             new_x = self.x + (self.v * dt)
             if new_x[0] < min_x[0] or new_x[0] > max_x[0]:
                 self.v = [bounce, 1] * self.v
@@ -372,9 +371,7 @@ class SPH_particle(object):
             self.x = new_x
 
         self.rho = self.rho + (self.D * dt)
-
         prefactor = self.rho / rho0
-
         self.P = (prefactor ** gamma - 1) * B
 
 
