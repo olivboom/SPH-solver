@@ -34,8 +34,8 @@ class SPH_main(object):
         """Set simulation parameters."""
         # self.scale = 30
         self.min_x[:] = (0.0, 0.0)
-        self.max_x[:] = (20.0, 10.0)
-        self.dx = 0.5 #0.02
+        self.max_x[:] = (5.0, 10.0)
+        self.dx = 0.2 #0.02
         self.h_fac = 2
         self.h = self.dx * self.h_fac
 
@@ -45,7 +45,7 @@ class SPH_main(object):
         self.g = np.array((0, -9.81))
         self.c0 = 20
         self.gamma = 7
-        self.dt = 0.1 * self.h / self.c0
+        self.dt = 0.2# * self.h / self.c0
         self.B = (self.rho0 * self.c0 ** 2) / self.gamma
         self.boundary_width = 3
 
@@ -142,8 +142,10 @@ class SPH_main(object):
         """
         part.a = self.g
         part.D = 0.0
-        if part.rho < 400:
-            part.rho = 400
+        if part.rho < 500:
+            part.rho = 500
+        if part.rho > 1500:
+            part.rho = 1500
 
         part.can_see_wall = False
         for i in range(max(0, part.list_num[0] - 1),
@@ -212,6 +214,7 @@ class SPH_main(object):
                     if q < 1:
                         if q < 0.1:
                             q = 0.1
+                            part.v = np.array([0, 0])
 
                         fact = 1 / q
                         P_ref = (self.rho0 * self.c0 ** 2 / self.gamma) * ((1.05 ** 2) - 1)
@@ -258,9 +261,20 @@ class SPH_main(object):
                         # print('q:', q)
                         # print('w:', w(q, self.h))
                         # print('Numerator', numerator)
+                        if other_part.rho > 1500:
+                            other_part.rho = 1500
                         denominator = denominator + (w(q, self.h) / other_part.rho)
-        part.rho = numerator / denominator
+        if denominator > 0:
+            part.rho = numerator / denominator
+        else:
+            part.rho = 500
+            print('Here')
 
+        if part.rho < 500:
+            part.rho = 500
+        if part.rho > 1500:
+            part.rho = 1500
+            print('There')
 
     def forward_wrapper(self):
         """Stepping through using forwards Euler"""
@@ -287,7 +301,7 @@ class SPH_main(object):
                 ns.run([self.particle_list])
                 i = 0
 
-            if j == 5:
+            if j == 10:
                 print('Smoothing')
                 for particle in self.particle_list:
                     self.density_smoothing(particle)
@@ -347,29 +361,30 @@ class SPH_particle(object):
                                  (2.0 * self.main_data.h), int)
 
 
-    def update_values(self, B, rho0, gamma, dt, min_x, max_x, bounce= -0.2):
+    def update_values(self, B, rho0, gamma, dt, min_x, max_x, bounce=1):
         """Updates the state of the particle for one time step forwards"""
         if not self.boundary:
-            new_x = self.x + (self.v * dt)
-            if new_x[0] < min_x[0] or new_x[0] > max_x[0]:
-                self.v = [bounce, 1] * self.v  #np.array([0, 0])
-                new_x = self.x + (self.v * dt)
-            else:
-                pass
-
-            if new_x[1] < min_x[1] or new_x[1] > max_x[1]:
-                self.v = [1, bounce] * self.v
-                new_x = self.x + (self.v * dt)
-            else:
-                pass
+        #     new_x = self.x + (self.v * dt)
+        #     if new_x[0] < min_x[0] or new_x[0] > max_x[0]:
+        #         self.v = [bounce, 1] * self.v  #np.array([0, 0])
+        #     elif new_x[1] < min_x[1] or new_x[1] > max_x[1]:
+        #         self.v = [1, bounce] * self.v
+        #         new_x = self.x + (self.v * dt)
+        #     else:
+        #         pass
+            self.x = self.x + (self.v * dt)
             self.v = self.v + (self.a * dt)
-
-            self.x = new_x
+                # self.x = new_x
 
         self.rho = self.rho + (self.D * dt)
-        if self.rho < 400:
-            self.rho = 400
-            
+
+        if self.rho < 500:
+            self.rho = 500
+            print('Set 500')
+        elif self.rho > 1500:
+            self.rho = 1500
+            print('Set 1500')
+
         prefactor = self.rho / rho0
         self.P = (prefactor ** gamma - 1) * B
 
