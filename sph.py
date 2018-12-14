@@ -88,7 +88,7 @@ class SPH_main(object):
                         initial[i, j] = 2
                     elif y < 0.5 * x - 1.5 and x > 3 and x < 17:
                         initial[i, j] = 1
-                    elif y < 7 and x > 17:
+                    elif y < 7 and x > 16:
                         initial[i, j] = 1
 
         elif geometry == 'wave_2':
@@ -98,7 +98,7 @@ class SPH_main(object):
                         initial[i, j] = 2
                     elif y < 0.5 * x - 4 and x > 8 and x < 16:
                         initial[i, j] = 1
-                    elif y < 4 and x > 16:
+                    elif y < 4 and x > 15:
                         initial[i, j] = 1
 
         initial = np.pad(initial, (self.boundary_width,
