@@ -4,7 +4,7 @@ import numpy as np
 import time
 import matplotlib.pylab as plty
 from matplotlib import animation
-import numpy_save as ns
+#import numpy_save as ns
 import pickle
 
 

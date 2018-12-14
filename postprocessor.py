@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import animation
-from sph_stub import SPH_main
-from sph_stub import SPH_particle
+from sph import SPH_main
+from sph import SPH_particle
 
 
 def read_file_plot(filename, option=None, image=False):
@@ -122,17 +122,18 @@ def read_file_plot(filename, option=None, image=False):
 
         if image is True:
             for i in range(len(solutions)):
-                fig, ax = plt.subplots(1, 1, figsize=(16, 16))
-                im = ax.scatter(xhist[i], yhist[i], s=10, c=vxhist[i],
-                                cmap='coolwarm', vmin=vxmin, vmax=vxmax)
-                im = ax.scatter(xboundhist[i], yboundhist[i],
-                                s=50, c=vxboundhist[i], marker='s', cmap='coolwarm',
-                                vmin=vxmin, vmax=vxmax)
-#                plt.colorbar(im, ax=ax)
-                ax.set_xlim(-5, 25)
-                ax.set_ylim(-5, 15)
-                plt.savefig('.\plot_images\image{}.png'.format(i))
-                plt.close()
+                if i % 2 == 0:
+                    fig, ax = plt.subplots(1, 1, figsize=(16, 16))
+                    im = ax.scatter(xhist[i], yhist[i], s=10, c=vxhist[i],
+                                    cmap='coolwarm', vmin=vxmin, vmax=vxmax)
+                    im = ax.scatter(xboundhist[i], yboundhist[i],
+                                    s=50, c=vxboundhist[i], marker='s', cmap='coolwarm',
+                                    vmin=vxmin, vmax=vxmax)
+    #                plt.colorbar(im, ax=ax)
+                    ax.set_xlim(-5, 25)
+                    ax.set_ylim(-5, 15)
+                    plt.savefig('.\plot_images\image{}.png'.format(i))
+                    plt.close()
 
         fig3 = plt.figure(figsize=(16, 16))
         scat = ax1.scatter([], [], c=[], s=10, cmap='coolwarm',
@@ -184,14 +185,15 @@ def read_file_plot(filename, option=None, image=False):
 
         if image is True:
             for i in range(len(solutions)):
-                fig, ax = plt.subplots(1, 1, figsize=(16, 16))
-                im = ax.scatter(xhist[i], yhist[i], s=10, c=vyhist[i],
-                                cmap='coolwarm', vmin=vxmin, vmax=vxmax)
-#                plt.colorbar(im, ax=ax)
-                ax.set_xlim(-5, 25)
-                ax.set_ylim(-5, 17)
-                plt.savefig('.\plot_images\image{}.png'.format(i))
-                plt.close()
+                if i % 2 == 0:
+                    fig, ax = plt.subplots(1, 1, figsize=(16, 16))
+                    im = ax.scatter(xhist[i], yhist[i], s=10, c=vyhist[i],
+                                    cmap='coolwarm', vmin=vxmin, vmax=vxmax)
+    #                plt.colorbar(im, ax=ax)
+                    ax.set_xlim(-5, 25)
+                    ax.set_ylim(-5, 17)
+                    plt.savefig('.\plot_images\image{}.png'.format(i))
+                    plt.close()
 
         fig3 = plt.figure(figsize=(16, 16))
         scat = ax1.scatter([], [], c=[], s=10, cmap='coolwarm',
@@ -243,14 +245,15 @@ def read_file_plot(filename, option=None, image=False):
 
         if image is True:
             for i in range(len(solutions)):
-                fig, ax = plt.subplots(1, 1, figsize=(16, 16))
-                im = ax.scatter(xhist[i], yhist[i], s=10, c=Preshist[i],
-                                cmap='coolwarm', vmin=Presmin, vmax=Presmax)
-#                plt.colorbar(im, ax=ax)
-                ax.set_xlim(-5, 25)
-                ax.set_ylim(-5, 17)
-                plt.savefig('.\plot_images\image{}.png'.format(i))
-                plt.close()
+                if i % 2 == 0:
+                    fig, ax = plt.subplots(1, 1, figsize=(16, 16))
+                    im = ax.scatter(xhist[i], yhist[i], s=10, c=Preshist[i],
+                                    cmap='coolwarm', vmin=Presmin, vmax=Presmax)
+    #                plt.colorbar(im, ax=ax)
+                    ax.set_xlim(-5, 25)
+                    ax.set_ylim(-5, 17)
+                    plt.savefig('.\plot_images\image{}.png'.format(i))
+                    plt.close()
 
         fig3 = plt.figure(figsize=(16, 16))
         scat = ax1.scatter([], [], c=[], s=10, cmap='coolwarm',
@@ -302,14 +305,15 @@ def read_file_plot(filename, option=None, image=False):
 
         if image is True:
             for i in range(len(solutions)):
-                fig, ax = plt.subplots(1, 1, figsize=(16, 16))
-                im = ax.scatter(xhist[i], yhist[i], s=10, c=rhohist[i],
-                                cmap='coolwarm', vmin=rhomin, vmax=rhomax)
-#                plt.colorbar(im, ax=ax)
-                ax.set_xlim(-5, 25)
-                ax.set_ylim(-5, 17)
-                plt.savefig('.\plot_images\image{}.png'.format(i))
-                plt.close()
+                if i % 2 == 0:
+                    fig, ax = plt.subplots(1, 1, figsize=(16, 16))
+                    im = ax.scatter(xhist[i], yhist[i], s=10, c=rhohist[i],
+                                    cmap='coolwarm', vmin=rhomin, vmax=rhomax)
+    #                plt.colorbar(im, ax=ax)
+                    ax.set_xlim(-5, 25)
+                    ax.set_ylim(-5, 17)
+                    plt.savefig('.\plot_images\image{}.png'.format(i))
+                    plt.close()
 
         fig3 = plt.figure(figsize=(16, 16))
         scat = ax1.scatter([], [], c=[], s=10, cmap='coolwarm',
@@ -344,4 +348,7 @@ def read_file_plot(filename, option=None, image=False):
 
 
 solutions = read_file_plot('State.npy', 3)
+plt.show()
+    
+
 
