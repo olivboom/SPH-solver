@@ -34,18 +34,18 @@ class SPH_main(object):
         """Set simulation parameters."""
         # self.scale = 30
         self.min_x[:] = (0.0, 0.0)
-        self.max_x[:] = (20.0, 10.0)
-        self.dx = 0.4 #0.02
+        self.max_x[:] = (5.0, 10.0)
+        self.dx = 0.2 #0.02
         self.h_fac = 2
         self.h = self.dx * self.h_fac
 
         # Added quantities
         self.mu = 0.001
         self.rho0 = 1000
-        self.g = np.array((0, -9.81))  # 100000 factor to see difference in couple of small time steps
+        self.g = np.array((0, -9.81))
         self.c0 = 20
         self.gamma = 7
-        self.dt = 0.1 * self.h / self.c0
+        self.dt = 0.2# * self.h / self.c0
         self.B = (self.rho0 * self.c0 ** 2) / self.gamma
         self.boundary_width = 3
 
@@ -142,6 +142,10 @@ class SPH_main(object):
         """
         part.a = self.g
         part.D = 0.0
+        if part.rho < 500:
+            part.rho = 500
+        if part.rho > 1500:
+            part.rho = 1500
 
         part.can_see_wall = False
         for i in range(max(0, part.list_num[0] - 1),
@@ -188,7 +192,6 @@ class SPH_main(object):
         if t_A < self.t_A:
             self.t_A = t_A
 
-
         if wall_forcing == 'Leonard_Jones':
 
             if part.can_see_wall is True:
@@ -211,22 +214,16 @@ class SPH_main(object):
                     if q < 1:
                         if q < 0.1:
                             q = 0.1
+                            part.v = np.array([0, 0])
 
                         fact = 1 / q
-
                         P_ref = (self.rho0 * self.c0 ** 2 / self.gamma) * ((1.05 ** 2) - 1)
                         factor = (fact ** 4 - fact ** 2) / perp_dist
                         acc_factor = wall_normal * factor * (P_ref / part.rho)
-                        print(part.rho)
-                        # print('Investigate', factor)
-                        # print('Wall Normal :', wall_normal)
-                        # print('Particle location: ', part.x)
-                        # print('Original acceleration', part.a)
-                        # print('Additional Acceleration', acc_factor)
 
                         part.a = part.a + acc_factor
 
-        elif wall_forcing == 'Fudge':
+        elif wall_forcing == 'Artificial Forcing':
 
             if part.can_see_wall is True:
                 for count, wall_normal in enumerate(self.normal):
@@ -242,7 +239,6 @@ class SPH_main(object):
                     if q < 1:
                         if q < 0.1:
                             q = 0.1
-                        print(part.rho)
                         acc_factor = wall_normal * abs(part.a)
 
                         part.a = part.a + acc_factor
@@ -262,12 +258,23 @@ class SPH_main(object):
                     if mag_r_ij < 2 * self.h:
                         q = mag_r_ij / self.h
                         numerator = numerator + w(q, self.h)
-                        print('q:', q)
-                        print('w:', w(q, self.h))
-                        print('Numerator', numerator)
+                        # print('q:', q)
+                        # print('w:', w(q, self.h))
+                        # print('Numerator', numerator)
+                        if other_part.rho > 1500:
+                            other_part.rho = 1500
                         denominator = denominator + (w(q, self.h) / other_part.rho)
-        part.rho = numerator / denominator
+        if denominator > 0:
+            part.rho = numerator / denominator
+        else:
+            part.rho = 500
+            print('Here')
 
+        if part.rho < 500:
+            part.rho = 500
+        if part.rho > 1500:
+            part.rho = 1500
+            print('There')
 
     def forward_wrapper(self):
         """Stepping through using forwards Euler"""
@@ -294,7 +301,7 @@ class SPH_main(object):
                 ns.run([self.particle_list])
                 i = 0
 
-            if j == 5:
+            if j == 10:
                 print('Smoothing')
                 for particle in self.particle_list:
                     self.density_smoothing(particle)
@@ -357,20 +364,27 @@ class SPH_particle(object):
     def update_values(self, B, rho0, gamma, dt, min_x, max_x, bounce=1):
         """Updates the state of the particle for one time step forwards"""
         if not self.boundary:
-            new_x = self.x + (self.v * dt)
-            if new_x[0] < min_x[0] or new_x[0] > max_x[0]:
-                self.v = [bounce, 1] * self.v
-                new_x = self.x + (self.v * dt)
-            elif new_x[1] < min_x[1] or new_x[1] > max_x[1]:
-                self.v = [1, bounce] * self.v
-                new_x = self.x + (self.v * dt)
-            else:
-                pass
+        #     new_x = self.x + (self.v * dt)
+        #     if new_x[0] < min_x[0] or new_x[0] > max_x[0]:
+        #         self.v = [bounce, 1] * self.v  #np.array([0, 0])
+        #     elif new_x[1] < min_x[1] or new_x[1] > max_x[1]:
+        #         self.v = [1, bounce] * self.v
+        #         new_x = self.x + (self.v * dt)
+        #     else:
+        #         pass
+            self.x = self.x + (self.v * dt)
             self.v = self.v + (self.a * dt)
-
-            self.x = new_x
+                # self.x = new_x
 
         self.rho = self.rho + (self.D * dt)
+
+        if self.rho < 500:
+            self.rho = 500
+            print('Set 500')
+        elif self.rho > 1500:
+            self.rho = 1500
+            print('Set 1500')
+
         prefactor = self.rho / rho0
         self.P = (prefactor ** gamma - 1) * B
 
@@ -385,8 +399,6 @@ def dw_dr(q, h):
     The gradient of the scaling factor associated with the smoothing kernel
     """
     if q < 1:
-        # if q < 0.01:
-        #     q = 0.01
         value = 10 / (7 * np.pi * h ** 3) * (-3 * q + 2.25 * q ** 2)
     else:
         value = -10 / (7 * np.pi * h ** 3) * 0.75 * (2 - q) ** 2
@@ -403,8 +415,6 @@ def w(q, h):
     The scaling factor associated with the smoothing kernel
     """
     if q <= 1 and q >= 0:
-        # if q < 0.01:
-        #     q = 0.01
         value = 10 / (7 * np.pi * h ** 2) * (1 - 1.5 * q ** 2 + 0.75 * q ** 3)
     elif q >= 1 and q <= 2:
         value = 10 / (7 * np.pi * h ** 2) * 0.25 * (2 - q) ** 3
