@@ -100,7 +100,7 @@ def read_file_plot(filename, option=None, time=-1, image=False):
                 plt.close()
 
         fig3 = plt.figure(figsize=(8, 8))
-        scat = ax1.scatter([], [],s=10, c=[], cmap='coolwarm', 
+        scat = ax1.scatter([], [], s=10, c=[], cmap='coolwarm',
                            vmin=vxmin, vmax=vxmax)
         ax1.set_xlim(-5, 25)
         ax1.set_ylim(-5, 15)
@@ -260,4 +260,4 @@ def read_file_plot(filename, option=None, time=-1, image=False):
         return anim
 
 
-solutions = read_file_plot('State4.npy', 1, time=-1)
+solutions = read_file_plot('State.npy', 1, time=-1)
