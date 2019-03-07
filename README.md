@@ -109,10 +109,6 @@ Testing is performed using pytest.  Four sanity checks are implemented:
 - test_density() : a solutions file created from the simulator is loaded. At every time interval, for every particle list, the particle density is checked to ensure it is not negative and it does not exceed the reference density by a factor of 1.5
 - test_mass_conserve() : a solutions file created from the simulator is loaded. At every time interval, for every particle list, the particle coordinate is checked to ensure that it is within the bounds of the minimum and maximum of the domain
 
-# Roadmap
-
-
-
 
   # Contributors
 
