@@ -1,4 +1,4 @@
-﻿# Team Atlantic - A Smoothed Particle Hydrodynamics Solver
+﻿# A Smoothed Particle Hydrodynamics Solver
 
 
 
